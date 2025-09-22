@@ -9,11 +9,12 @@ class UtilisateurSerializer(serializers.ModelSerializer):
     nom = serializers.CharField(source='first_name', read_only=True)
     prenom = serializers.CharField(source='last_name', read_only=True)
     telephone = serializers.CharField(source='phone_number', read_only=True)
+    role_utilisateur = serializers.CharField(source='role', read_only=True)
     est_admin = serializers.BooleanField(source='is_staff', read_only=True)
 
     class Meta:
         model = User
-        fields = ['id', 'nom_utilisateur', 'email', 'nom', 'prenom', 'telephone', 'est_admin']
+        fields = ['id', 'nom_utilisateur', 'email', 'nom', 'prenom', 'telephone', 'role_utilisateur', 'est_admin']
 
 
 class EnregistrementSerializer(serializers.ModelSerializer):
@@ -34,7 +35,9 @@ class EnregistrementSerializer(serializers.ModelSerializer):
             email=validated_data.get('email', ''),
             first_name=validated_data.get('first_name', ''),
             last_name=validated_data.get('last_name', ''),
-            phone_number=validated_data.get('phone_number', '')
+            phone_number=validated_data.get('phone_number', ''),
+            role='user',
+            is_staff=False
         )
         user.set_password(validated_data['mot_de_passe'])
         user.save()
@@ -48,10 +51,11 @@ class AdminCreationSerializer(serializers.ModelSerializer):
     nom = serializers.CharField(source='first_name')
     prenom = serializers.CharField(source='last_name')
     telephone = serializers.CharField(source='phone_number')
+    role = serializers.ChoiceField(choices=User.ROLE_CHOICES, default='mairie')
 
     class Meta:
         model = User
-        fields = ['nom_utilisateur', 'email', 'mot_de_passe', 'nom', 'prenom', 'telephone']
+        fields = ['nom_utilisateur', 'email', 'mot_de_passe', 'nom', 'prenom', 'telephone', 'role']
 
     def create(self, validated_data):
         admin = User(
@@ -60,7 +64,8 @@ class AdminCreationSerializer(serializers.ModelSerializer):
             first_name=validated_data.get('first_name', ''),
             last_name=validated_data.get('last_name', ''),
             phone_number=validated_data.get('phone_number', ''),
-            is_staff=True,  # Crée directement un admin
+            role=validated_data.get('role', 'mairie'),
+            is_staff=True,
             is_superuser=False
         )
         admin.set_password(validated_data['mot_de_passe'])
