@@ -5,24 +5,42 @@ Django settings for bornsafe_backend project.
 from pathlib import Path
 from datetime import timedelta
 import os
+import environ
 
-# Base du projet
+# ----------------------------
+# BASE DIR
+# ----------------------------
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Media (fichiers uploadés)
+# ----------------------------
+# django-environ
+# ----------------------------
+env = environ.Env(
+    DEBUG=(bool, False)
+)
+
+# Lire le fichier .env (doit être à la racine : même niveau que manage.py)
+environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
+
+# ----------------------------
+# SÉCURITÉ
+# ----------------------------
+SECRET_KEY = env("SECRET_KEY")
+DEBUG = env.bool("DEBUG", default=True)
+ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=[])
+
+# ----------------------------
+# MEDIA & STATIC
+# ----------------------------
 MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+MEDIA_ROOT = BASE_DIR / 'media'
 
-# Static files
 STATIC_URL = '/static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+STATIC_ROOT = BASE_DIR / 'static'
 
-# Sécurité
-SECRET_KEY = 'django-insecure-8&cr^19da)e_z$_(z-9r8%v1!b8drf-fkia-s%xjhk3@&v2%i$'
-DEBUG = True
-ALLOWED_HOSTS = []
-
-# Applications installées
+# ----------------------------
+# APPLICATIONS
+# ----------------------------
 INSTALLED_APPS = [
     # Django par défaut
     'django.contrib.admin',
@@ -35,19 +53,18 @@ INSTALLED_APPS = [
     # Third-party apps
     'rest_framework',
     'rest_framework_simplejwt.token_blacklist',
+    'django_filters',
+    'drf_yasg',
 
     # Apps BornSafe
     'accounts',
     'actes',
     'provinces',
-    
-    #swagger
-    'drf_yasg',
-
-    'django_filters',
 ]
 
-# Middleware
+# ----------------------------
+# MIDDLEWARE
+# ----------------------------
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -58,10 +75,11 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-# URLs principales
+# ----------------------------
+# URLS & TEMPLATES
+# ----------------------------
 ROOT_URLCONF = 'bornsafe_backend.urls'
 
-# Templates
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -77,22 +95,25 @@ TEMPLATES = [
     },
 ]
 
-# WSGI
 WSGI_APPLICATION = 'bornsafe_backend.wsgi.application'
 
-# Base de données PostgreSQL
+# ----------------------------
+# DATABASE (PostgreSQL)
+# ----------------------------
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'bornsafe_db',
-        'USER': 'bornsafe_user',
-        'PASSWORD': 'angekoumba1403',
-        'HOST': 'localhost',
-        'PORT': '5432',
+        'NAME': env("DB_NAME"),
+        'USER': env("DB_USER"),
+        'PASSWORD': env("DB_PASSWORD"),
+        'HOST': env("DB_HOST"),
+        'PORT': env("DB_PORT"),
     }
 }
 
-# Authentification custom
+# ----------------------------
+# AUTHENTICATION
+# ----------------------------
 AUTH_USER_MODEL = 'accounts.User'
 
 # Password validators
@@ -103,13 +124,17 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
-# Internationalisation
+# ----------------------------
+# INTERNATIONALISATION
+# ----------------------------
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
-# DRF
+# ----------------------------
+# DRF SETTINGS
+# ----------------------------
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
@@ -118,12 +143,18 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.IsAuthenticated',
     ),
     'DEFAULT_SCHEMA_CLASS': 'rest_framework.schemas.openapi.AutoSchema',
-
-    'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend', 'rest_framework.filters.OrderingFilter', 'rest_framework.filters.SearchFilter'],
+    'DEFAULT_FILTER_BACKENDS': [
+        'django_filters.rest_framework.DjangoFilterBackend',
+        'rest_framework.filters.OrderingFilter',
+        'rest_framework.filters.SearchFilter',
+    ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 10,
 }
 
+# ----------------------------
+# SWAGGER SETTINGS
+# ----------------------------
 SWAGGER_SETTINGS = {
     'SECURITY_DEFINITIONS': {
         'Bearer': {
@@ -136,14 +167,17 @@ SWAGGER_SETTINGS = {
     'USE_SESSION_AUTH': False,
 }
 
-
-# JWT
+# ----------------------------
+# JWT SETTINGS
+# ----------------------------
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=env.int("ACCESS_TOKEN_LIFETIME_MINUTES", default=60)),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=env.int("REFRESH_TOKEN_LIFETIME_DAYS", default=1)),
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
 }
 
-# Default primary key
+# ----------------------------
+# DEFAULT PK
+# ----------------------------
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
