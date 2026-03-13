@@ -1,0 +1,74 @@
+name: Tests BornSafe
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: bornsafe_test
+          POSTGRES_USER: bornsafe_user
+          POSTGRES_PASSWORD: bornsafe_pass
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        cd bornsafe_backend
+        pip install -r requirements.txt
+        pip install coverage flake8 black
+    
+    - name: Lint with flake8
+      run: |
+        cd bornsafe_backend
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        flake8 . --count --exit-zero --max-complexity=10 --statistics
+    
+    - name: Check formatting with black
+      run: |
+        cd bornsafe_backend
+        black --check . || echo "Formatage requis"
+    
+    - name: Run tests with coverage
+      env:
+        DB_NAME: bornsafe_test
+        DB_USER: bornsafe_user
+        DB_PASSWORD: bornsafe_pass
+        DB_HOST: localhost
+        DB_PORT: 5432
+        SECRET_KEY: test-key-not-secure
+        DEBUG: "False"
+      run: |
+        cd bornsafe_backend
+        coverage run --source='.' manage.py test
+        coverage report
+        coverage xml
+    
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./bornsafe_backend/coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false

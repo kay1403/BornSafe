@@ -1,0 +1,1279 @@
+===================================
+🔍 BORNSAFE - SUITE DE TESTS
+===================================
+
+[0;34m📋 1. VÉRIFICATION CONFIGURATION[0m
+
+[1;33m▶ Exécution: Check Django[0m
+System check identified no issues (0 silenced).
+[0;32m✅ SUCCÈS: Check Django[0m
+
+[1;33m▶ Exécution: Check migrations[0m
+Migrations en attente
+[0;32m✅ SUCCÈS: Check migrations[0m
+
+[0;34m🧪 2. TESTS UNITAIRES[0m
+
+[1;33m▶ Exécution: Tests Accounts[0m
+Creating test database for alias 'default' ('file:memorydb_default?mode=memory&cache=shared')...
+Found 18 test(s).
+Operations to perform:
+  Synchronize unmigrated apps: corsheaders, django_filters, drf_yasg, messages, rest_framework, staticfiles
+  Apply all migrations: accounts, actes, admin, auth, contenttypes, provinces, sessions, token_blacklist
+Synchronizing apps without migrations:
+  Creating tables...
+    Running deferred SQL...
+Running migrations:
+  Applying contenttypes.0001_initial... OK
+  Applying contenttypes.0002_remove_content_type_name... OK
+  Applying auth.0001_initial... OK
+  Applying auth.0002_alter_permission_name_max_length... OK
+  Applying auth.0003_alter_user_email_max_length... OK
+  Applying auth.0004_alter_user_username_opts... OK
+  Applying auth.0005_alter_user_last_login_null... OK
+  Applying auth.0006_require_contenttypes_0002... OK
+  Applying auth.0007_alter_validators_add_error_messages... OK
+  Applying auth.0008_alter_user_username_max_length... OK
+  Applying auth.0009_alter_user_last_name_max_length... OK
+  Applying auth.0010_alter_group_name_max_length... OK
+  Applying auth.0011_update_proxy_permissions... OK
+  Applying auth.0012_alter_user_first_name_max_length... OK
+  Applying accounts.0001_initial... OK
+  Applying accounts.0002_alter_user_groups_alter_user_user_permissions... OK
+  Applying accounts.0003_remove_user_is_admin_user_phone_number... OK
+  Applying accounts.0004_user_role... OK
+  Applying accounts.0005_alter_user_options_user_account_locked_until_and_more... OK
+  Applying provinces.0001_initial... OK
+  Applying provinces.0002_alter_province_name... OK
+  Applying actes.0001_initial... OK
+  Applying actes.0002_actenaissance_created_by_actenaissance_modified_by... OK
+  Applying actes.0003_alter_actenaissance_options_actenaissance_status_and_more... OK
+  Applying admin.0001_initial... OK
+  Applying admin.0002_logentry_remove_auto_add... OK
+  Applying admin.0003_logentry_add_action_flag_choices... OK
+  Applying sessions.0001_initial... OK
+  Applying token_blacklist.0001_initial... OK
+  Applying token_blacklist.0002_outstandingtoken_jti_hex... OK
+  Applying token_blacklist.0003_auto_20171017_2007... OK
+  Applying token_blacklist.0004_auto_20171017_2013... OK
+  Applying token_blacklist.0005_remove_outstandingtoken_jti... OK
+  Applying token_blacklist.0006_auto_20171017_2113... OK
+  Applying token_blacklist.0007_auto_20171017_2214... OK
+  Applying token_blacklist.0008_migrate_to_bigautofield... OK
+  Applying token_blacklist.0010_fix_migrate_to_bigautofield... OK
+  Applying token_blacklist.0011_linearizes_history... OK
+  Applying token_blacklist.0012_alter_outstandingtoken_user... OK
+  Applying token_blacklist.0013_alter_blacklistedtoken_options_and_more...test_10_invalid_token (accounts.tests.UserAPITests.test_10_invalid_token)
+Test 10: Token invalide ... ERROR 2026-03-13 23:03:43,964 Exception: InvalidToken - Detail: {'detail': ErrorDetail(string='Given token not valid for any token type', code='token_not_valid'), 'code': ErrorDetail(string='token_not_valid', code='token_not_valid'), 'messages': [{'token_class': ErrorDetail(string='AccessToken', code='token_not_valid'), 'token_type': ErrorDetail(string='access', code='token_not_valid'), 'message': ErrorDetail(string='Token is invalid', code='token_not_valid')}], 'status_code': 401} - User: Anonymous
+ERROR 2026-03-13 23:03:43,964 Exception: InvalidToken - Detail: {'detail': ErrorDetail(string='Given token not valid for any token type', code='token_not_valid'), 'code': ErrorDetail(string='token_not_valid', code='token_not_valid'), 'messages': [{'token_class': ErrorDetail(string='AccessToken', code='token_not_valid'), 'token_type': ErrorDetail(string='access', code='token_not_valid'), 'message': ErrorDetail(string='Token is invalid', code='token_not_valid')}], 'status_code': 401} - User: Anonymous
+INFO 2026-03-13 23:03:43,974 Request: GET /api/accounts/me/ - User: Anonymous - Status: 401 - Duration: 0.07s
+INFO 2026-03-13 23:03:43,974 Request: GET /api/accounts/me/ - User: Anonymous - Status: 401 - Duration: 0.07s
+WARNING 2026-03-13 23:03:43,988 Unauthorized: /api/accounts/me/
+ok
+test_1_registration_success (accounts.tests.UserAPITests.test_1_registration_success)
+Test 1: Enregistrement réussi ... ERROR 2026-03-13 23:03:44,069 Unhandled exception: object of type 'NoneType' has no len()
+Traceback (most recent call last):
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/django/utils/decorators.py", line 48, in _wrapper
+    return bound_method(*args, **kwargs)
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/django_ratelimit/decorators.py", line 27, in _wrapped
+    return fn(request, *args, **kw)
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/accounts/views.py", line 48, in register
+    serializer.is_valid(raise_exception=True)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/rest_framework/serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/rest_framework/serializers.py", line 447, in run_validation
+    value = self.validate(value)
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/accounts/serializers.py", line 60, in validate
+    validate_password(data.get('password'))
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/django/contrib/auth/password_validation.py", line 53, in validate_password
+    validator.validate(password, user)
+    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/django/contrib/auth/password_validation.py", line 108, in validate
+    if len(password) < self.min_length:
+       ~~~^^^^^^^^^^
+TypeError: object of type 'NoneType' has no len()
+ERROR 2026-03-13 23:03:44,069 Unhandled exception: object of type 'NoneType' has no len()
+Traceback (most recent call last):
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/django/utils/decorators.py", line 48, in _wrapper
+    return bound_method(*args, **kwargs)
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/django_ratelimit/decorators.py", line 27, in _wrapped
+    return fn(request, *args, **kw)
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/accounts/views.py", line 48, in register
+    serializer.is_valid(raise_exception=True)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/rest_framework/serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/rest_framework/serializers.py", line 447, in run_validation
+    value = self.validate(value)
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/accounts/serializers.py", line 60, in validate
+    validate_password(data.get('password'))
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/django/contrib/auth/password_validation.py", line 53, in validate_password
+    validator.validate(password, user)
+    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/django/contrib/auth/password_validation.py", line 108, in validate
+    if len(password) < self.min_length:
+       ~~~^^^^^^^^^^
+TypeError: object of type 'NoneType' has no len()
+INFO 2026-03-13 23:03:44,131 Request: POST /api/accounts/register/ - User: Anonymous - Status: 500 - Duration: 0.14s
+INFO 2026-03-13 23:03:44,131 Request: POST /api/accounts/register/ - User: Anonymous - Status: 500 - Duration: 0.14s
+ERROR 2026-03-13 23:03:44,131 Internal Server Error: /api/accounts/register/
+FAIL
+test_2_registration_password_mismatch (accounts.tests.UserAPITests.test_2_registration_password_mismatch)
+Test 2: Mots de passe différents ... ERROR 2026-03-13 23:03:44,151 Unhandled exception: object of type 'NoneType' has no len()
+Traceback (most recent call last):
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/django/utils/decorators.py", line 48, in _wrapper
+    return bound_method(*args, **kwargs)
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/django_ratelimit/decorators.py", line 27, in _wrapped
+    return fn(request, *args, **kw)
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/accounts/views.py", line 48, in register
+    serializer.is_valid(raise_exception=True)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/rest_framework/serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/rest_framework/serializers.py", line 447, in run_validation
+    value = self.validate(value)
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/accounts/serializers.py", line 60, in validate
+    validate_password(data.get('password'))
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/django/contrib/auth/password_validation.py", line 53, in validate_password
+    validator.validate(password, user)
+    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/django/contrib/auth/password_validation.py", line 108, in validate
+    if len(password) < self.min_length:
+       ~~~^^^^^^^^^^
+TypeError: object of type 'NoneType' has no len()
+ERROR 2026-03-13 23:03:44,151 Unhandled exception: object of type 'NoneType' has no len()
+Traceback (most recent call last):
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/django/utils/decorators.py", line 48, in _wrapper
+    return bound_method(*args, **kwargs)
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/django_ratelimit/decorators.py", line 27, in _wrapped
+    return fn(request, *args, **kw)
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/accounts/views.py", line 48, in register
+    serializer.is_valid(raise_exception=True)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/rest_framework/serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/rest_framework/serializers.py", line 447, in run_validation
+    value = self.validate(value)
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/accounts/serializers.py", line 60, in validate
+    validate_password(data.get('password'))
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/django/contrib/auth/password_validation.py", line 53, in validate_password
+    validator.validate(password, user)
+    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/django/contrib/auth/password_validation.py", line 108, in validate
+    if len(password) < self.min_length:
+       ~~~^^^^^^^^^^
+TypeError: object of type 'NoneType' has no len()
+INFO 2026-03-13 23:03:44,153 Request: POST /api/accounts/register/ - User: Anonymous - Status: 500 - Duration: 0.00s
+INFO 2026-03-13 23:03:44,153 Request: POST /api/accounts/register/ - User: Anonymous - Status: 500 - Duration: 0.00s
+ERROR 2026-03-13 23:03:44,154 Internal Server Error: /api/accounts/register/
+FAIL
+test_3_registration_weak_password (accounts.tests.UserAPITests.test_3_registration_weak_password)
+Test 3: Mot de passe trop faible ... ERROR 2026-03-13 23:03:44,157 Exception: ValidationError - Detail: {'mot_de_passe': [ErrorDetail(string='Assurez-vous que ce champ comporte au moins 8\xa0caractères.', code='min_length')], 'status_code': 400} - User: Anonymous
+ERROR 2026-03-13 23:03:44,157 Exception: ValidationError - Detail: {'mot_de_passe': [ErrorDetail(string='Assurez-vous que ce champ comporte au moins 8\xa0caractères.', code='min_length')], 'status_code': 400} - User: Anonymous
+INFO 2026-03-13 23:03:44,158 Request: POST /api/accounts/register/ - User: Anonymous - Status: 400 - Duration: 0.00s
+INFO 2026-03-13 23:03:44,158 Request: POST /api/accounts/register/ - User: Anonymous - Status: 400 - Duration: 0.00s
+WARNING 2026-03-13 23:03:44,158 Bad Request: /api/accounts/register/
+ok
+test_4_registration_duplicate_username (accounts.tests.UserAPITests.test_4_registration_duplicate_username)
+Test 4: Nom d'utilisateur déjà pris ... ERROR 2026-03-13 23:03:44,161 Unhandled exception: object of type 'NoneType' has no len()
+Traceback (most recent call last):
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/django/utils/decorators.py", line 48, in _wrapper
+    return bound_method(*args, **kwargs)
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/django_ratelimit/decorators.py", line 27, in _wrapped
+    return fn(request, *args, **kw)
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/accounts/views.py", line 48, in register
+    serializer.is_valid(raise_exception=True)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/rest_framework/serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/rest_framework/serializers.py", line 447, in run_validation
+    value = self.validate(value)
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/accounts/serializers.py", line 60, in validate
+    validate_password(data.get('password'))
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/django/contrib/auth/password_validation.py", line 53, in validate_password
+    validator.validate(password, user)
+    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/django/contrib/auth/password_validation.py", line 108, in validate
+    if len(password) < self.min_length:
+       ~~~^^^^^^^^^^
+TypeError: object of type 'NoneType' has no len()
+ERROR 2026-03-13 23:03:44,161 Unhandled exception: object of type 'NoneType' has no len()
+Traceback (most recent call last):
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/django/utils/decorators.py", line 48, in _wrapper
+    return bound_method(*args, **kwargs)
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/django_ratelimit/decorators.py", line 27, in _wrapped
+    return fn(request, *args, **kw)
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/accounts/views.py", line 48, in register
+    serializer.is_valid(raise_exception=True)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/rest_framework/serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/rest_framework/serializers.py", line 447, in run_validation
+    value = self.validate(value)
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/accounts/serializers.py", line 60, in validate
+    validate_password(data.get('password'))
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/django/contrib/auth/password_validation.py", line 53, in validate_password
+    validator.validate(password, user)
+    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/django/contrib/auth/password_validation.py", line 108, in validate
+    if len(password) < self.min_length:
+       ~~~^^^^^^^^^^
+TypeError: object of type 'NoneType' has no len()
+INFO 2026-03-13 23:03:44,163 Request: POST /api/accounts/register/ - User: Anonymous - Status: 500 - Duration: 0.00s
+INFO 2026-03-13 23:03:44,163 Request: POST /api/accounts/register/ - User: Anonymous - Status: 500 - Duration: 0.00s
+ERROR 2026-03-13 23:03:44,164 Internal Server Error: /api/accounts/register/
+ERROR 2026-03-13 23:03:44,166 Unhandled exception: object of type 'NoneType' has no len()
+Traceback (most recent call last):
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/django/utils/decorators.py", line 48, in _wrapper
+    return bound_method(*args, **kwargs)
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/django_ratelimit/decorators.py", line 27, in _wrapped
+    return fn(request, *args, **kw)
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/accounts/views.py", line 48, in register
+    serializer.is_valid(raise_exception=True)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/rest_framework/serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/rest_framework/serializers.py", line 447, in run_validation
+    value = self.validate(value)
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/accounts/serializers.py", line 60, in validate
+    validate_password(data.get('password'))
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/django/contrib/auth/password_validation.py", line 53, in validate_password
+    validator.validate(password, user)
+    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/django/contrib/auth/password_validation.py", line 108, in validate
+    if len(password) < self.min_length:
+       ~~~^^^^^^^^^^
+TypeError: object of type 'NoneType' has no len()
+ERROR 2026-03-13 23:03:44,166 Unhandled exception: object of type 'NoneType' has no len()
+Traceback (most recent call last):
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/django/utils/decorators.py", line 48, in _wrapper
+    return bound_method(*args, **kwargs)
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/django_ratelimit/decorators.py", line 27, in _wrapped
+    return fn(request, *args, **kw)
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/accounts/views.py", line 48, in register
+    serializer.is_valid(raise_exception=True)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/rest_framework/serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/rest_framework/serializers.py", line 447, in run_validation
+    value = self.validate(value)
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/accounts/serializers.py", line 60, in validate
+    validate_password(data.get('password'))
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/django/contrib/auth/password_validation.py", line 53, in validate_password
+    validator.validate(password, user)
+    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/django/contrib/auth/password_validation.py", line 108, in validate
+    if len(password) < self.min_length:
+       ~~~^^^^^^^^^^
+TypeError: object of type 'NoneType' has no len()
+INFO 2026-03-13 23:03:44,168 Request: POST /api/accounts/register/ - User: Anonymous - Status: 500 - Duration: 0.00s
+INFO 2026-03-13 23:03:44,168 Request: POST /api/accounts/register/ - User: Anonymous - Status: 500 - Duration: 0.00s
+ERROR 2026-03-13 23:03:44,168 Internal Server Error: /api/accounts/register/
+FAIL
+test_5_login_success (accounts.tests.UserAPITests.test_5_login_success)
+Test 5: Connexion réussie ... ERROR 2026-03-13 23:03:44,172 Exception: Ratelimited - Detail:  - User: Anonymous
+ERROR 2026-03-13 23:03:44,172 Exception: Ratelimited - Detail:  - User: Anonymous
+INFO 2026-03-13 23:03:44,172 Request: POST /api/accounts/register/ - User: Anonymous - Status: 403 - Duration: 0.00s
+INFO 2026-03-13 23:03:44,172 Request: POST /api/accounts/register/ - User: Anonymous - Status: 403 - Duration: 0.00s
+WARNING 2026-03-13 23:03:44,173 Forbidden: /api/accounts/register/
+ERROR 2026-03-13 23:03:45,241 Exception: ValidationError - Detail: {'non_field_errors': [ErrorDetail(string="Nom d'utilisateur ou mot de passe incorrect", code='invalid')], 'status_code': 400} - User: Anonymous
+ERROR 2026-03-13 23:03:45,241 Exception: ValidationError - Detail: {'non_field_errors': [ErrorDetail(string="Nom d'utilisateur ou mot de passe incorrect", code='invalid')], 'status_code': 400} - User: Anonymous
+INFO 2026-03-13 23:03:45,242 Request: POST /api/accounts/login/ - User: Anonymous - Status: 400 - Duration: 1.07s
+INFO 2026-03-13 23:03:45,242 Request: POST /api/accounts/login/ - User: Anonymous - Status: 400 - Duration: 1.07s
+WARNING 2026-03-13 23:03:45,242 Bad Request: /api/accounts/login/
+FAIL
+test_6_login_wrong_password (accounts.tests.UserAPITests.test_6_login_wrong_password)
+Test 6: Mauvais mot de passe ... ERROR 2026-03-13 23:03:45,246 Exception: Ratelimited - Detail:  - User: Anonymous
+ERROR 2026-03-13 23:03:45,246 Exception: Ratelimited - Detail:  - User: Anonymous
+INFO 2026-03-13 23:03:45,247 Request: POST /api/accounts/register/ - User: Anonymous - Status: 403 - Duration: 0.00s
+INFO 2026-03-13 23:03:45,247 Request: POST /api/accounts/register/ - User: Anonymous - Status: 403 - Duration: 0.00s
+WARNING 2026-03-13 23:03:45,247 Forbidden: /api/accounts/register/
+ERROR 2026-03-13 23:03:46,450 Exception: ValidationError - Detail: {'non_field_errors': [ErrorDetail(string="Nom d'utilisateur ou mot de passe incorrect", code='invalid')], 'status_code': 400} - User: Anonymous
+ERROR 2026-03-13 23:03:46,450 Exception: ValidationError - Detail: {'non_field_errors': [ErrorDetail(string="Nom d'utilisateur ou mot de passe incorrect", code='invalid')], 'status_code': 400} - User: Anonymous
+INFO 2026-03-13 23:03:46,450 Request: POST /api/accounts/login/ - User: Anonymous - Status: 400 - Duration: 1.20s
+INFO 2026-03-13 23:03:46,450 Request: POST /api/accounts/login/ - User: Anonymous - Status: 400 - Duration: 1.20s
+WARNING 2026-03-13 23:03:46,450 Bad Request: /api/accounts/login/
+ok
+test_7_login_account_locked (accounts.tests.UserAPITests.test_7_login_account_locked)
+Test 7: Compte verrouillé après 5 tentatives ... ERROR 2026-03-13 23:03:46,454 Exception: Ratelimited - Detail:  - User: Anonymous
+ERROR 2026-03-13 23:03:46,454 Exception: Ratelimited - Detail:  - User: Anonymous
+INFO 2026-03-13 23:03:46,454 Request: POST /api/accounts/register/ - User: Anonymous - Status: 403 - Duration: 0.00s
+INFO 2026-03-13 23:03:46,454 Request: POST /api/accounts/register/ - User: Anonymous - Status: 403 - Duration: 0.00s
+WARNING 2026-03-13 23:03:46,454 Forbidden: /api/accounts/register/
+ERROR 2026-03-13 23:03:47,629 Exception: ValidationError - Detail: {'non_field_errors': [ErrorDetail(string="Nom d'utilisateur ou mot de passe incorrect", code='invalid')], 'status_code': 400} - User: Anonymous
+ERROR 2026-03-13 23:03:47,629 Exception: ValidationError - Detail: {'non_field_errors': [ErrorDetail(string="Nom d'utilisateur ou mot de passe incorrect", code='invalid')], 'status_code': 400} - User: Anonymous
+INFO 2026-03-13 23:03:47,630 Request: POST /api/accounts/login/ - User: Anonymous - Status: 400 - Duration: 1.17s
+INFO 2026-03-13 23:03:47,630 Request: POST /api/accounts/login/ - User: Anonymous - Status: 400 - Duration: 1.17s
+WARNING 2026-03-13 23:03:47,630 Bad Request: /api/accounts/login/
+ERROR 2026-03-13 23:03:47,632 Exception: Ratelimited - Detail:  - User: Anonymous
+ERROR 2026-03-13 23:03:47,632 Exception: Ratelimited - Detail:  - User: Anonymous
+INFO 2026-03-13 23:03:47,632 Request: POST /api/accounts/login/ - User: Anonymous - Status: 403 - Duration: 0.00s
+INFO 2026-03-13 23:03:47,632 Request: POST /api/accounts/login/ - User: Anonymous - Status: 403 - Duration: 0.00s
+WARNING 2026-03-13 23:03:47,632 Forbidden: /api/accounts/login/
+FAIL
+test_8_authenticated_endpoint (accounts.tests.UserAPITests.test_8_authenticated_endpoint)
+Test 8: Accès endpoint protégé ... ERROR 2026-03-13 23:03:47,635 Exception: Ratelimited - Detail:  - User: Anonymous
+ERROR 2026-03-13 23:03:47,635 Exception: Ratelimited - Detail:  - User: Anonymous
+INFO 2026-03-13 23:03:47,636 Request: POST /api/accounts/register/ - User: Anonymous - Status: 403 - Duration: 0.00s
+INFO 2026-03-13 23:03:47,636 Request: POST /api/accounts/register/ - User: Anonymous - Status: 403 - Duration: 0.00s
+WARNING 2026-03-13 23:03:47,636 Forbidden: /api/accounts/register/
+ERROR
+test_9_change_password (accounts.tests.UserAPITests.test_9_change_password)
+Test 9: Changement de mot de passe ... ERROR 2026-03-13 23:03:47,638 Exception: Ratelimited - Detail:  - User: Anonymous
+ERROR 2026-03-13 23:03:47,638 Exception: Ratelimited - Detail:  - User: Anonymous
+INFO 2026-03-13 23:03:47,639 Request: POST /api/accounts/register/ - User: Anonymous - Status: 403 - Duration: 0.00s
+INFO 2026-03-13 23:03:47,639 Request: POST /api/accounts/register/ - User: Anonymous - Status: 403 - Duration: 0.00s
+WARNING 2026-03-13 23:03:47,639 Forbidden: /api/accounts/register/
+ERROR
+test_admin_creation (accounts.tests.UserModelTests.test_admin_creation)
+Test la création d'admin ... ok
+test_failed_login_tracking (accounts.tests.UserModelTests.test_failed_login_tracking)
+Test le suivi des tentatives échouées ... ok
+test_unique_constraints (accounts.tests.UserModelTests.test_unique_constraints)
+Test les contraintes d'unicité ... ok
+test_user_creation (accounts.tests.UserModelTests.test_user_creation)
+Test la création d'utilisateur ... ok
+test_user_str_method (accounts.tests.UserModelTests.test_user_str_method)
+Test la méthode __str__ ... ok
+test_mairie_cannot_create_admin (accounts.tests.UserPermissionsTests.test_mairie_cannot_create_admin)
+Test: Mairie ne peut pas créer d'admin ... ERROR 2026-03-13 23:04:07,788 Exception: Ratelimited - Detail:  - User: Anonymous
+ERROR 2026-03-13 23:04:07,788 Exception: Ratelimited - Detail:  - User: Anonymous
+INFO 2026-03-13 23:04:07,790 Request: POST /api/accounts/login/ - User: Anonymous - Status: 403 - Duration: 0.00s
+INFO 2026-03-13 23:04:07,790 Request: POST /api/accounts/login/ - User: Anonymous - Status: 403 - Duration: 0.00s
+WARNING 2026-03-13 23:04:07,793 Forbidden: /api/accounts/login/
+ERROR
+test_super_admin_can_create_admin (accounts.tests.UserPermissionsTests.test_super_admin_can_create_admin)
+Test: Super admin peut créer admin ... ERROR 2026-03-13 23:04:11,177 Exception: Ratelimited - Detail:  - User: Anonymous
+ERROR 2026-03-13 23:04:11,177 Exception: Ratelimited - Detail:  - User: Anonymous
+INFO 2026-03-13 23:04:11,178 Request: POST /api/accounts/login/ - User: Anonymous - Status: 403 - Duration: 0.00s
+INFO 2026-03-13 23:04:11,178 Request: POST /api/accounts/login/ - User: Anonymous - Status: 403 - Duration: 0.00s
+WARNING 2026-03-13 23:04:11,178 Forbidden: /api/accounts/login/
+ERROR
+test_user_cannot_create_admin (accounts.tests.UserPermissionsTests.test_user_cannot_create_admin)
+Test: User normal ne peut pas créer d'admin ... ERROR 2026-03-13 23:04:14,485 Exception: Ratelimited - Detail:  - User: Anonymous
+ERROR 2026-03-13 23:04:14,485 Exception: Ratelimited - Detail:  - User: Anonymous
+INFO 2026-03-13 23:04:14,485 Request: POST /api/accounts/login/ - User: Anonymous - Status: 403 - Duration: 0.00s
+INFO 2026-03-13 23:04:14,485 Request: POST /api/accounts/login/ - User: Anonymous - Status: 403 - Duration: 0.00s
+WARNING 2026-03-13 23:04:14,486 Forbidden: /api/accounts/login/
+ERROR
+
+======================================================================
+ERROR: test_8_authenticated_endpoint (accounts.tests.UserAPITests.test_8_authenticated_endpoint)
+Test 8: Accès endpoint protégé
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/accounts/tests.py", line 211, in test_8_authenticated_endpoint
+    token = reg_response.data['access']
+            ~~~~~~~~~~~~~~~~~^^^^^^^^^^
+KeyError: 'access'
+
+======================================================================
+ERROR: test_9_change_password (accounts.tests.UserAPITests.test_9_change_password)
+Test 9: Changement de mot de passe
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/accounts/tests.py", line 223, in test_9_change_password
+    token = reg_response.data['access']
+            ~~~~~~~~~~~~~~~~~^^^^^^^^^^
+KeyError: 'access'
+
+======================================================================
+ERROR: test_mairie_cannot_create_admin (accounts.tests.UserPermissionsTests.test_mairie_cannot_create_admin)
+Test: Mairie ne peut pas créer d'admin
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/accounts/tests.py", line 311, in test_mairie_cannot_create_admin
+    token = response.data['access']
+            ~~~~~~~~~~~~~^^^^^^^^^^
+KeyError: 'access'
+
+======================================================================
+ERROR: test_super_admin_can_create_admin (accounts.tests.UserPermissionsTests.test_super_admin_can_create_admin)
+Test: Super admin peut créer admin
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/accounts/tests.py", line 334, in test_super_admin_can_create_admin
+    token = response.data['access']
+            ~~~~~~~~~~~~~^^^^^^^^^^
+KeyError: 'access'
+
+======================================================================
+ERROR: test_user_cannot_create_admin (accounts.tests.UserPermissionsTests.test_user_cannot_create_admin)
+Test: User normal ne peut pas créer d'admin
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/accounts/tests.py", line 288, in test_user_cannot_create_admin
+    token = response.data['access']
+            ~~~~~~~~~~~~~^^^^^^^^^^
+KeyError: 'access'
+
+======================================================================
+FAIL: test_1_registration_success (accounts.tests.UserAPITests.test_1_registration_success)
+Test 1: Enregistrement réussi
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/accounts/tests.py", line 118, in test_1_registration_success
+    self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 500 != 201
+
+======================================================================
+FAIL: test_2_registration_password_mismatch (accounts.tests.UserAPITests.test_2_registration_password_mismatch)
+Test 2: Mots de passe différents
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/accounts/tests.py", line 133, in test_2_registration_password_mismatch
+    self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 500 != 400
+
+======================================================================
+FAIL: test_4_registration_duplicate_username (accounts.tests.UserAPITests.test_4_registration_duplicate_username)
+Test 4: Nom d'utilisateur déjà pris
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/accounts/tests.py", line 154, in test_4_registration_duplicate_username
+    self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 500 != 400
+
+======================================================================
+FAIL: test_5_login_success (accounts.tests.UserAPITests.test_5_login_success)
+Test 5: Connexion réussie
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/accounts/tests.py", line 168, in test_5_login_success
+    self.assertEqual(response.status_code, status.HTTP_200_OK)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 400 != 200
+
+======================================================================
+FAIL: test_7_login_account_locked (accounts.tests.UserAPITests.test_7_login_account_locked)
+Test 7: Compte verrouillé après 5 tentatives
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/accounts/tests.py", line 200, in test_7_login_account_locked
+    self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 403 != 400
+
+----------------------------------------------------------------------
+Ran 18 tests in 30.613s
+
+FAILED (failures=5, errors=5)
+Destroying test database for alias 'default' ('file:memorydb_default?mode=memory&cache=shared')...
+ OK
+System check identified no issues (0 silenced).
+[0;31m❌ ÉCHEC: Tests Accounts[0m
+
+[1;33m▶ Exécution: Tests Provinces[0m
+Creating test database for alias 'default' ('file:memorydb_default?mode=memory&cache=shared')...
+Found 8 test(s).
+Operations to perform:
+  Synchronize unmigrated apps: corsheaders, django_filters, drf_yasg, messages, rest_framework, staticfiles
+  Apply all migrations: accounts, actes, admin, auth, contenttypes, provinces, sessions, token_blacklist
+Synchronizing apps without migrations:
+  Creating tables...
+    Running deferred SQL...
+Running migrations:
+  Applying contenttypes.0001_initial... OK
+  Applying contenttypes.0002_remove_content_type_name... OK
+  Applying auth.0001_initial... OK
+  Applying auth.0002_alter_permission_name_max_length... OK
+  Applying auth.0003_alter_user_email_max_length... OK
+  Applying auth.0004_alter_user_username_opts... OK
+  Applying auth.0005_alter_user_last_login_null... OK
+  Applying auth.0006_require_contenttypes_0002... OK
+  Applying auth.0007_alter_validators_add_error_messages... OK
+  Applying auth.0008_alter_user_username_max_length... OK
+  Applying auth.0009_alter_user_last_name_max_length... OK
+  Applying auth.0010_alter_group_name_max_length... OK
+  Applying auth.0011_update_proxy_permissions... OK
+  Applying auth.0012_alter_user_first_name_max_length... OK
+  Applying accounts.0001_initial... OK
+  Applying accounts.0002_alter_user_groups_alter_user_user_permissions... OK
+  Applying accounts.0003_remove_user_is_admin_user_phone_number... OK
+  Applying accounts.0004_user_role... OK
+  Applying accounts.0005_alter_user_options_user_account_locked_until_and_more... OK
+  Applying provinces.0001_initial... OK
+  Applying provinces.0002_alter_province_name... OK
+  Applying actes.0001_initial... OK
+  Applying actes.0002_actenaissance_created_by_actenaissance_modified_by... OK
+  Applying actes.0003_alter_actenaissance_options_actenaissance_status_and_more... OK
+  Applying admin.0001_initial... OK
+  Applying admin.0002_logentry_remove_auto_add... OK
+  Applying admin.0003_logentry_add_action_flag_choices... OK
+  Applying sessions.0001_initial... OK
+  Applying token_blacklist.0001_initial... OK
+  Applying token_blacklist.0002_outstandingtoken_jti_hex... OK
+  Applying token_blacklist.0003_auto_20171017_2007... OK
+  Applying token_blacklist.0004_auto_20171017_2013... OK
+  Applying token_blacklist.0005_remove_outstandingtoken_jti... OK
+  Applying token_blacklist.0006_auto_20171017_2113... OK
+  Applying token_blacklist.0007_auto_20171017_2214... OK
+  Applying token_blacklist.0008_migrate_to_bigautofield... OK
+  Applying token_blacklist.0010_fix_migrate_to_bigautofield... OK
+  Applying token_blacklist.0011_linearizes_history... OK
+  Applying token_blacklist.0012_alter_outstandingtoken_user... OK
+  Applying token_blacklist.0013_alter_blacklistedtoken_options_and_more...test_1_list_provinces_authenticated (provinces.tests.ProvinceAPITests.test_1_list_provinces_authenticated)
+Test 1: Lister provinces (authentifié) ... INFO 2026-03-13 23:04:19,804 Connexion réussie: normaluser
+INFO 2026-03-13 23:04:19,804 Connexion réussie: normaluser
+INFO 2026-03-13 23:04:19,807 Request: POST /api/accounts/login/ - User: Anonymous - Status: 200 - Duration: 1.32s
+INFO 2026-03-13 23:04:19,807 Request: POST /api/accounts/login/ - User: Anonymous - Status: 200 - Duration: 1.32s
+/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/rest_framework/pagination.py:207: UnorderedObjectListWarning: Pagination may yield inconsistent results with an unordered object_list: <class 'provinces.models.Province'> QuerySet.
+  paginator = self.django_paginator_class(queryset, page_size)
+INFO 2026-03-13 23:04:19,828 Request: GET /api/provinces/ - User: normaluser (Utilisateur) - Status: 200 - Duration: 0.02s
+INFO 2026-03-13 23:04:19,828 Request: GET /api/provinces/ - User: normaluser (Utilisateur) - Status: 200 - Duration: 0.02s
+ok
+test_2_list_provinces_unauthenticated (provinces.tests.ProvinceAPITests.test_2_list_provinces_unauthenticated)
+Test 2: Lister provinces (non authentifié) ... ERROR 2026-03-13 23:04:22,088 Exception: NotAuthenticated - Detail: Informations d'authentification non fournies. - User: Anonymous
+ERROR 2026-03-13 23:04:22,088 Exception: NotAuthenticated - Detail: Informations d'authentification non fournies. - User: Anonymous
+INFO 2026-03-13 23:04:22,090 Request: GET /api/provinces/ - User: Anonymous - Status: 401 - Duration: 0.00s
+INFO 2026-03-13 23:04:22,090 Request: GET /api/provinces/ - User: Anonymous - Status: 401 - Duration: 0.00s
+WARNING 2026-03-13 23:04:22,092 Unauthorized: /api/provinces/
+ok
+test_3_create_province_super_admin (provinces.tests.ProvinceAPITests.test_3_create_province_super_admin)
+Test 3: Créer province (super admin) ... INFO 2026-03-13 23:04:26,194 Connexion réussie: superadmin
+INFO 2026-03-13 23:04:26,194 Connexion réussie: superadmin
+INFO 2026-03-13 23:04:26,196 Request: POST /api/accounts/login/ - User: Anonymous - Status: 200 - Duration: 1.18s
+INFO 2026-03-13 23:04:26,196 Request: POST /api/accounts/login/ - User: Anonymous - Status: 200 - Duration: 1.18s
+INFO 2026-03-13 23:04:26,199 Request: POST /api/provinces/ - User: superadmin (Super Admin) - Status: 201 - Duration: 0.00s
+INFO 2026-03-13 23:04:26,199 Request: POST /api/provinces/ - User: superadmin (Super Admin) - Status: 201 - Duration: 0.00s
+ok
+test_4_create_province_normal_user (provinces.tests.ProvinceAPITests.test_4_create_province_normal_user)
+Test 4: Créer province (user normal) ... INFO 2026-03-13 23:04:29,404 Connexion réussie: normaluser
+INFO 2026-03-13 23:04:29,404 Connexion réussie: normaluser
+INFO 2026-03-13 23:04:29,406 Request: POST /api/accounts/login/ - User: Anonymous - Status: 200 - Duration: 1.07s
+INFO 2026-03-13 23:04:29,406 Request: POST /api/accounts/login/ - User: Anonymous - Status: 200 - Duration: 1.07s
+ERROR 2026-03-13 23:04:29,409 Exception: PermissionDenied - Detail: Vous n'avez pas la permission d'effectuer cette action. - User: normaluser (Utilisateur)
+ERROR 2026-03-13 23:04:29,409 Exception: PermissionDenied - Detail: Vous n'avez pas la permission d'effectuer cette action. - User: normaluser (Utilisateur)
+INFO 2026-03-13 23:04:29,409 Request: POST /api/provinces/ - User: normaluser (Utilisateur) - Status: 403 - Duration: 0.00s
+INFO 2026-03-13 23:04:29,409 Request: POST /api/provinces/ - User: normaluser (Utilisateur) - Status: 403 - Duration: 0.00s
+WARNING 2026-03-13 23:04:29,410 Forbidden: /api/provinces/
+ok
+test_5_update_province_super_admin (provinces.tests.ProvinceAPITests.test_5_update_province_super_admin)
+Test 5: Modifier province (super admin) ... ERROR 2026-03-13 23:04:31,755 Exception: Ratelimited - Detail:  - User: Anonymous
+ERROR 2026-03-13 23:04:31,755 Exception: Ratelimited - Detail:  - User: Anonymous
+INFO 2026-03-13 23:04:31,756 Request: POST /api/accounts/login/ - User: Anonymous - Status: 403 - Duration: 0.00s
+INFO 2026-03-13 23:04:31,756 Request: POST /api/accounts/login/ - User: Anonymous - Status: 403 - Duration: 0.00s
+WARNING 2026-03-13 23:04:31,756 Forbidden: /api/accounts/login/
+ERROR
+test_6_delete_province_super_admin (provinces.tests.ProvinceAPITests.test_6_delete_province_super_admin)
+Test 6: Supprimer province (super admin) ... INFO 2026-03-13 23:04:35,818 Connexion réussie: superadmin
+INFO 2026-03-13 23:04:35,818 Connexion réussie: superadmin
+INFO 2026-03-13 23:04:35,819 Request: POST /api/accounts/login/ - User: Anonymous - Status: 200 - Duration: 1.12s
+INFO 2026-03-13 23:04:35,819 Request: POST /api/accounts/login/ - User: Anonymous - Status: 200 - Duration: 1.12s
+INFO 2026-03-13 23:04:35,825 Request: DELETE /api/provinces/1/ - User: superadmin (Super Admin) - Status: 204 - Duration: 0.00s
+INFO 2026-03-13 23:04:35,825 Request: DELETE /api/provinces/1/ - User: superadmin (Super Admin) - Status: 204 - Duration: 0.00s
+ok
+test_province_creation (provinces.tests.ProvinceModelTests.test_province_creation)
+Test création province ... ok
+test_province_unique_name (provinces.tests.ProvinceModelTests.test_province_unique_name)
+Test unicité du nom ... ok
+
+======================================================================
+ERROR: test_5_update_province_super_admin (provinces.tests.ProvinceAPITests.test_5_update_province_super_admin)
+Test 5: Modifier province (super admin)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/provinces/tests.py", line 107, in test_5_update_province_super_admin
+    token = response.data['access']
+            ~~~~~~~~~~~~~^^^^^^^^^^
+KeyError: 'access'
+
+----------------------------------------------------------------------
+Ran 8 tests in 19.484s
+
+FAILED (errors=1)
+Destroying test database for alias 'default' ('file:memorydb_default?mode=memory&cache=shared')...
+ OK
+System check identified no issues (0 silenced).
+[0;31m❌ ÉCHEC: Tests Provinces[0m
+
+[1;33m▶ Exécution: Tests Actes[0m
+Creating test database for alias 'default' ('file:memorydb_default?mode=memory&cache=shared')...
+Found 19 test(s).
+Operations to perform:
+  Synchronize unmigrated apps: corsheaders, django_filters, drf_yasg, messages, rest_framework, staticfiles
+  Apply all migrations: accounts, actes, admin, auth, contenttypes, provinces, sessions, token_blacklist
+Synchronizing apps without migrations:
+  Creating tables...
+    Running deferred SQL...
+Running migrations:
+  Applying contenttypes.0001_initial... OK
+  Applying contenttypes.0002_remove_content_type_name... OK
+  Applying auth.0001_initial... OK
+  Applying auth.0002_alter_permission_name_max_length... OK
+  Applying auth.0003_alter_user_email_max_length... OK
+  Applying auth.0004_alter_user_username_opts... OK
+  Applying auth.0005_alter_user_last_login_null... OK
+  Applying auth.0006_require_contenttypes_0002... OK
+  Applying auth.0007_alter_validators_add_error_messages... OK
+  Applying auth.0008_alter_user_username_max_length... OK
+  Applying auth.0009_alter_user_last_name_max_length... OK
+  Applying auth.0010_alter_group_name_max_length... OK
+  Applying auth.0011_update_proxy_permissions... OK
+  Applying auth.0012_alter_user_first_name_max_length... OK
+  Applying accounts.0001_initial... OK
+  Applying accounts.0002_alter_user_groups_alter_user_user_permissions... OK
+  Applying accounts.0003_remove_user_is_admin_user_phone_number... OK
+  Applying accounts.0004_user_role... OK
+  Applying accounts.0005_alter_user_options_user_account_locked_until_and_more... OK
+  Applying provinces.0001_initial... OK
+  Applying provinces.0002_alter_province_name... OK
+  Applying actes.0001_initial... OK
+  Applying actes.0002_actenaissance_created_by_actenaissance_modified_by... OK
+  Applying actes.0003_alter_actenaissance_options_actenaissance_status_and_more... OK
+  Applying admin.0001_initial... OK
+  Applying admin.0002_logentry_remove_auto_add... OK
+  Applying admin.0003_logentry_add_action_flag_choices... OK
+  Applying sessions.0001_initial... OK
+  Applying token_blacklist.0001_initial... OK
+  Applying token_blacklist.0002_outstandingtoken_jti_hex... OK
+  Applying token_blacklist.0003_auto_20171017_2007... OK
+  Applying token_blacklist.0004_auto_20171017_2013... OK
+  Applying token_blacklist.0005_remove_outstandingtoken_jti... OK
+  Applying token_blacklist.0006_auto_20171017_2113... OK
+  Applying token_blacklist.0007_auto_20171017_2214... OK
+  Applying token_blacklist.0008_migrate_to_bigautofield... OK
+  Applying token_blacklist.0010_fix_migrate_to_bigautofield... OK
+  Applying token_blacklist.0011_linearizes_history... OK
+  Applying token_blacklist.0012_alter_outstandingtoken_user... OK
+  Applying token_blacklist.0013_alter_blacklistedtoken_options_and_more...test_10_verify_invalid_acte (actes.tests.ActeNaissanceAPITests.test_10_verify_invalid_acte)
+Test 10: Vérifier acte invalide ... INFO 2026-03-13 23:04:43,173 Connexion réussie: normaluser
+INFO 2026-03-13 23:04:43,173 Connexion réussie: normaluser
+INFO 2026-03-13 23:04:43,176 Request: POST /api/accounts/login/ - User: Anonymous - Status: 200 - Duration: 1.53s
+INFO 2026-03-13 23:04:43,176 Request: POST /api/accounts/login/ - User: Anonymous - Status: 200 - Duration: 1.53s
+ERROR 2026-03-13 23:04:43,182 Exception: ValidationError - Detail: {'non_field_errors': [ErrorDetail(string='Acte non trouvé', code='invalid')], 'status_code': 400} - User: normaluser (Utilisateur)
+ERROR 2026-03-13 23:04:43,182 Exception: ValidationError - Detail: {'non_field_errors': [ErrorDetail(string='Acte non trouvé', code='invalid')], 'status_code': 400} - User: normaluser (Utilisateur)
+INFO 2026-03-13 23:04:43,182 Request: POST /api/actes/verify/ - User: normaluser (Utilisateur) - Status: 400 - Duration: 0.01s
+INFO 2026-03-13 23:04:43,182 Request: POST /api/actes/verify/ - User: normaluser (Utilisateur) - Status: 400 - Duration: 0.01s
+WARNING 2026-03-13 23:04:43,184 Bad Request: /api/actes/verify/
+ok
+test_11_search_actes (actes.tests.ActeNaissanceAPITests.test_11_search_actes)
+Test 11: Recherche d'actes ... INFO 2026-03-13 23:04:49,269 Connexion réussie: mairie
+INFO 2026-03-13 23:04:49,269 Connexion réussie: mairie
+INFO 2026-03-13 23:04:49,294 Request: POST /api/accounts/login/ - User: Anonymous - Status: 200 - Duration: 1.29s
+INFO 2026-03-13 23:04:49,294 Request: POST /api/accounts/login/ - User: Anonymous - Status: 200 - Duration: 1.29s
+INFO 2026-03-13 23:04:49,312 Request: GET /api/actes/ - User: mairie (Mairie) - Status: 200 - Duration: 0.02s
+INFO 2026-03-13 23:04:49,312 Request: GET /api/actes/ - User: mairie (Mairie) - Status: 200 - Duration: 0.02s
+INFO 2026-03-13 23:04:49,323 Request: GET /api/actes/ - User: mairie (Mairie) - Status: 200 - Duration: 0.01s
+INFO 2026-03-13 23:04:49,323 Request: GET /api/actes/ - User: mairie (Mairie) - Status: 200 - Duration: 0.01s
+ok
+test_12_filter_by_status (actes.tests.ActeNaissanceAPITests.test_12_filter_by_status)
+Test 12: Filtre par statut ... INFO 2026-03-13 23:04:55,165 Connexion réussie: mairie
+INFO 2026-03-13 23:04:55,165 Connexion réussie: mairie
+INFO 2026-03-13 23:04:55,174 Request: POST /api/accounts/login/ - User: Anonymous - Status: 200 - Duration: 1.55s
+INFO 2026-03-13 23:04:55,174 Request: POST /api/accounts/login/ - User: Anonymous - Status: 200 - Duration: 1.55s
+INFO 2026-03-13 23:04:55,187 Request: GET /api/actes/ - User: mairie (Mairie) - Status: 200 - Duration: 0.01s
+INFO 2026-03-13 23:04:55,187 Request: GET /api/actes/ - User: mairie (Mairie) - Status: 200 - Duration: 0.01s
+ok
+test_13_download_pdf (actes.tests.ActeNaissanceAPITests.test_13_download_pdf)
+Test 13: Téléchargement PDF ... ERROR 2026-03-13 23:04:59,052 Exception: Ratelimited - Detail:  - User: Anonymous
+ERROR 2026-03-13 23:04:59,052 Exception: Ratelimited - Detail:  - User: Anonymous
+INFO 2026-03-13 23:04:59,052 Request: POST /api/accounts/login/ - User: Anonymous - Status: 403 - Duration: 0.00s
+INFO 2026-03-13 23:04:59,052 Request: POST /api/accounts/login/ - User: Anonymous - Status: 403 - Duration: 0.00s
+WARNING 2026-03-13 23:04:59,053 Forbidden: /api/accounts/login/
+ERROR
+test_14_qr_code_generation (actes.tests.ActeNaissanceAPITests.test_14_qr_code_generation)
+Test 14: Génération QR code ... ERROR 2026-03-13 23:05:03,224 Exception: Ratelimited - Detail:  - User: Anonymous
+ERROR 2026-03-13 23:05:03,224 Exception: Ratelimited - Detail:  - User: Anonymous
+INFO 2026-03-13 23:05:03,224 Request: POST /api/accounts/login/ - User: Anonymous - Status: 403 - Duration: 0.00s
+INFO 2026-03-13 23:05:03,224 Request: POST /api/accounts/login/ - User: Anonymous - Status: 403 - Duration: 0.00s
+WARNING 2026-03-13 23:05:03,225 Forbidden: /api/accounts/login/
+ERROR
+test_15_pagination (actes.tests.ActeNaissanceAPITests.test_15_pagination)
+Test 15: Pagination fonctionne ... ERROR 2026-03-13 23:05:06,592 Exception: Ratelimited - Detail:  - User: Anonymous
+ERROR 2026-03-13 23:05:06,592 Exception: Ratelimited - Detail:  - User: Anonymous
+INFO 2026-03-13 23:05:06,593 Request: POST /api/accounts/login/ - User: Anonymous - Status: 403 - Duration: 0.00s
+INFO 2026-03-13 23:05:06,593 Request: POST /api/accounts/login/ - User: Anonymous - Status: 403 - Duration: 0.00s
+WARNING 2026-03-13 23:05:06,593 Forbidden: /api/accounts/login/
+ERROR
+test_1_list_actes_as_user (actes.tests.ActeNaissanceAPITests.test_1_list_actes_as_user)
+Test 1: User voit seulement actes validés ... ERROR 2026-03-13 23:05:09,937 Exception: Ratelimited - Detail:  - User: Anonymous
+ERROR 2026-03-13 23:05:09,937 Exception: Ratelimited - Detail:  - User: Anonymous
+INFO 2026-03-13 23:05:09,938 Request: POST /api/accounts/login/ - User: Anonymous - Status: 403 - Duration: 0.00s
+INFO 2026-03-13 23:05:09,938 Request: POST /api/accounts/login/ - User: Anonymous - Status: 403 - Duration: 0.00s
+WARNING 2026-03-13 23:05:09,938 Forbidden: /api/accounts/login/
+ERROR
+test_2_list_actes_as_mairie (actes.tests.ActeNaissanceAPITests.test_2_list_actes_as_mairie)
+Test 2: Mairie voit tous ses actes ... ERROR 2026-03-13 23:05:13,722 Exception: Ratelimited - Detail:  - User: Anonymous
+ERROR 2026-03-13 23:05:13,722 Exception: Ratelimited - Detail:  - User: Anonymous
+INFO 2026-03-13 23:05:13,722 Request: POST /api/accounts/login/ - User: Anonymous - Status: 403 - Duration: 0.00s
+INFO 2026-03-13 23:05:13,722 Request: POST /api/accounts/login/ - User: Anonymous - Status: 403 - Duration: 0.00s
+WARNING 2026-03-13 23:05:13,722 Forbidden: /api/accounts/login/
+ERROR
+test_3_create_acte_as_user (actes.tests.ActeNaissanceAPITests.test_3_create_acte_as_user)
+Test 3: User ne peut pas créer d'acte ... ERROR 2026-03-13 23:05:17,344 Exception: Ratelimited - Detail:  - User: Anonymous
+ERROR 2026-03-13 23:05:17,344 Exception: Ratelimited - Detail:  - User: Anonymous
+INFO 2026-03-13 23:05:17,345 Request: POST /api/accounts/login/ - User: Anonymous - Status: 403 - Duration: 0.00s
+INFO 2026-03-13 23:05:17,345 Request: POST /api/accounts/login/ - User: Anonymous - Status: 403 - Duration: 0.00s
+WARNING 2026-03-13 23:05:17,345 Forbidden: /api/accounts/login/
+ERROR
+test_4_create_acte_as_mairie (actes.tests.ActeNaissanceAPITests.test_4_create_acte_as_mairie)
+Test 4: Mairie peut créer un acte ... ERROR 2026-03-13 23:05:21,228 Exception: Ratelimited - Detail:  - User: Anonymous
+ERROR 2026-03-13 23:05:21,228 Exception: Ratelimited - Detail:  - User: Anonymous
+INFO 2026-03-13 23:05:21,228 Request: POST /api/accounts/login/ - User: Anonymous - Status: 403 - Duration: 0.00s
+INFO 2026-03-13 23:05:21,228 Request: POST /api/accounts/login/ - User: Anonymous - Status: 403 - Duration: 0.00s
+WARNING 2026-03-13 23:05:21,232 Forbidden: /api/accounts/login/
+ERROR
+test_5_create_acte_duplicate_numero (actes.tests.ActeNaissanceAPITests.test_5_create_acte_duplicate_numero)
+Test 5: Impossible de créer avec numéro existant ... ERROR 2026-03-13 23:05:25,344 Exception: Ratelimited - Detail:  - User: Anonymous
+ERROR 2026-03-13 23:05:25,344 Exception: Ratelimited - Detail:  - User: Anonymous
+INFO 2026-03-13 23:05:25,344 Request: POST /api/accounts/login/ - User: Anonymous - Status: 403 - Duration: 0.00s
+INFO 2026-03-13 23:05:25,344 Request: POST /api/accounts/login/ - User: Anonymous - Status: 403 - Duration: 0.00s
+WARNING 2026-03-13 23:05:25,345 Forbidden: /api/accounts/login/
+ERROR
+test_6_create_acte_future_date (actes.tests.ActeNaissanceAPITests.test_6_create_acte_future_date)
+Test 6: Date de naissance future impossible ... ERROR 2026-03-13 23:05:29,447 Exception: Ratelimited - Detail:  - User: Anonymous
+ERROR 2026-03-13 23:05:29,447 Exception: Ratelimited - Detail:  - User: Anonymous
+INFO 2026-03-13 23:05:29,447 Request: POST /api/accounts/login/ - User: Anonymous - Status: 403 - Duration: 0.00s
+INFO 2026-03-13 23:05:29,447 Request: POST /api/accounts/login/ - User: Anonymous - Status: 403 - Duration: 0.00s
+WARNING 2026-03-13 23:05:29,447 Forbidden: /api/accounts/login/
+ERROR
+test_7_update_acte_as_creator (actes.tests.ActeNaissanceAPITests.test_7_update_acte_as_creator)
+Test 7: Mairie peut modifier son acte ... INFO 2026-03-13 23:05:34,268 Connexion réussie: mairie
+INFO 2026-03-13 23:05:34,268 Connexion réussie: mairie
+INFO 2026-03-13 23:05:34,270 Request: POST /api/accounts/login/ - User: Anonymous - Status: 200 - Duration: 1.13s
+INFO 2026-03-13 23:05:34,270 Request: POST /api/accounts/login/ - User: Anonymous - Status: 200 - Duration: 1.13s
+INFO 2026-03-13 23:05:34,278 Acte mis à jour: ACTE2025002 par mairie
+INFO 2026-03-13 23:05:34,278 Acte mis à jour: ACTE2025002 par mairie
+INFO 2026-03-13 23:05:34,278 Request: PATCH /api/actes/e6434f63-057e-43e0-bd55-e197375828c7/ - User: mairie (Mairie) - Status: 200 - Duration: 0.01s
+INFO 2026-03-13 23:05:34,278 Request: PATCH /api/actes/e6434f63-057e-43e0-bd55-e197375828c7/ - User: mairie (Mairie) - Status: 200 - Duration: 0.01s
+ok
+test_8_validate_acte (actes.tests.ActeNaissanceAPITests.test_8_validate_acte)
+Test 8: Valider un acte ... INFO 2026-03-13 23:05:39,011 Connexion réussie: mairie
+INFO 2026-03-13 23:05:39,011 Connexion réussie: mairie
+INFO 2026-03-13 23:05:39,012 Request: POST /api/accounts/login/ - User: Anonymous - Status: 200 - Duration: 1.20s
+INFO 2026-03-13 23:05:39,012 Request: POST /api/accounts/login/ - User: Anonymous - Status: 200 - Duration: 1.20s
+INFO 2026-03-13 23:05:39,019 Acte validé: ACTE2025002 par mairie
+INFO 2026-03-13 23:05:39,019 Acte validé: ACTE2025002 par mairie
+INFO 2026-03-13 23:05:39,021 Request: POST /api/actes/48e5f078-3954-45a8-bd9e-3faeff58eb89/validate/ - User: mairie (Mairie) - Status: 200 - Duration: 0.01s
+INFO 2026-03-13 23:05:39,021 Request: POST /api/actes/48e5f078-3954-45a8-bd9e-3faeff58eb89/validate/ - User: mairie (Mairie) - Status: 200 - Duration: 0.01s
+ok
+test_9_verify_acte (actes.tests.ActeNaissanceAPITests.test_9_verify_acte)
+Test 9: Vérifier un acte ... INFO 2026-03-13 23:05:43,959 Connexion réussie: normaluser
+INFO 2026-03-13 23:05:43,959 Connexion réussie: normaluser
+INFO 2026-03-13 23:05:43,961 Request: POST /api/accounts/login/ - User: Anonymous - Status: 200 - Duration: 1.18s
+INFO 2026-03-13 23:05:43,961 Request: POST /api/accounts/login/ - User: Anonymous - Status: 200 - Duration: 1.18s
+INFO 2026-03-13 23:05:43,982 Acte vérifié: ACTE2025001 par normaluser
+INFO 2026-03-13 23:05:43,982 Acte vérifié: ACTE2025001 par normaluser
+INFO 2026-03-13 23:05:43,992 Request: POST /api/actes/verify/ - User: normaluser (Utilisateur) - Status: 200 - Duration: 0.03s
+INFO 2026-03-13 23:05:43,992 Request: POST /api/actes/verify/ - User: normaluser (Utilisateur) - Status: 200 - Duration: 0.03s
+ok
+test_acte_creation (actes.tests.ActeNaissanceModelTests.test_acte_creation)
+Test création acte ... ok
+test_acte_str_method (actes.tests.ActeNaissanceModelTests.test_acte_str_method)
+Test méthode __str__ ... ok
+test_acte_unique_numero (actes.tests.ActeNaissanceModelTests.test_acte_unique_numero)
+Test unicité numéro d'acte ... ok
+test_qr_data_generation (actes.tests.ActeNaissanceModelTests.test_qr_data_generation)
+Test génération données QR ... ok
+
+======================================================================
+ERROR: test_13_download_pdf (actes.tests.ActeNaissanceAPITests.test_13_download_pdf)
+Test 13: Téléchargement PDF
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/actes/tests.py", line 319, in test_13_download_pdf
+    self.login_as(self.user, 'UserPass123!')
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/actes/tests.py", line 137, in login_as
+    token = response.data['access']
+            ~~~~~~~~~~~~~^^^^^^^^^^
+KeyError: 'access'
+
+======================================================================
+ERROR: test_14_qr_code_generation (actes.tests.ActeNaissanceAPITests.test_14_qr_code_generation)
+Test 14: Génération QR code
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/actes/tests.py", line 330, in test_14_qr_code_generation
+    self.login_as(self.mairie, 'MairiePass123!')
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/actes/tests.py", line 137, in login_as
+    token = response.data['access']
+            ~~~~~~~~~~~~~^^^^^^^^^^
+KeyError: 'access'
+
+======================================================================
+ERROR: test_15_pagination (actes.tests.ActeNaissanceAPITests.test_15_pagination)
+Test 15: Pagination fonctionne
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/actes/tests.py", line 341, in test_15_pagination
+    self.login_as(self.mairie, 'MairiePass123!')
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/actes/tests.py", line 137, in login_as
+    token = response.data['access']
+            ~~~~~~~~~~~~~^^^^^^^^^^
+KeyError: 'access'
+
+======================================================================
+ERROR: test_1_list_actes_as_user (actes.tests.ActeNaissanceAPITests.test_1_list_actes_as_user)
+Test 1: User voit seulement actes validés
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/actes/tests.py", line 143, in test_1_list_actes_as_user
+    self.login_as(self.user, 'UserPass123!')
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/actes/tests.py", line 137, in login_as
+    token = response.data['access']
+            ~~~~~~~~~~~~~^^^^^^^^^^
+KeyError: 'access'
+
+======================================================================
+ERROR: test_2_list_actes_as_mairie (actes.tests.ActeNaissanceAPITests.test_2_list_actes_as_mairie)
+Test 2: Mairie voit tous ses actes
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/actes/tests.py", line 155, in test_2_list_actes_as_mairie
+    self.login_as(self.mairie, 'MairiePass123!')
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/actes/tests.py", line 137, in login_as
+    token = response.data['access']
+            ~~~~~~~~~~~~~^^^^^^^^^^
+KeyError: 'access'
+
+======================================================================
+ERROR: test_3_create_acte_as_user (actes.tests.ActeNaissanceAPITests.test_3_create_acte_as_user)
+Test 3: User ne peut pas créer d'acte
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/actes/tests.py", line 165, in test_3_create_acte_as_user
+    self.login_as(self.user, 'UserPass123!')
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/actes/tests.py", line 137, in login_as
+    token = response.data['access']
+            ~~~~~~~~~~~~~^^^^^^^^^^
+KeyError: 'access'
+
+======================================================================
+ERROR: test_4_create_acte_as_mairie (actes.tests.ActeNaissanceAPITests.test_4_create_acte_as_mairie)
+Test 4: Mairie peut créer un acte
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/actes/tests.py", line 181, in test_4_create_acte_as_mairie
+    self.login_as(self.mairie, 'MairiePass123!')
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/actes/tests.py", line 137, in login_as
+    token = response.data['access']
+            ~~~~~~~~~~~~~^^^^^^^^^^
+KeyError: 'access'
+
+======================================================================
+ERROR: test_5_create_acte_duplicate_numero (actes.tests.ActeNaissanceAPITests.test_5_create_acte_duplicate_numero)
+Test 5: Impossible de créer avec numéro existant
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/actes/tests.py", line 203, in test_5_create_acte_duplicate_numero
+    self.login_as(self.mairie, 'MairiePass123!')
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/actes/tests.py", line 137, in login_as
+    token = response.data['access']
+            ~~~~~~~~~~~~~^^^^^^^^^^
+KeyError: 'access'
+
+======================================================================
+ERROR: test_6_create_acte_future_date (actes.tests.ActeNaissanceAPITests.test_6_create_acte_future_date)
+Test 6: Date de naissance future impossible
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/actes/tests.py", line 220, in test_6_create_acte_future_date
+    self.login_as(self.mairie, 'MairiePass123!')
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/actes/tests.py", line 137, in login_as
+    token = response.data['access']
+            ~~~~~~~~~~~~~^^^^^^^^^^
+KeyError: 'access'
+
+----------------------------------------------------------------------
+Ran 19 tests in 70.967s
+
+FAILED (errors=9)
+Destroying test database for alias 'default' ('file:memorydb_default?mode=memory&cache=shared')...
+ OK
+System check identified no issues (0 silenced).
+[0;31m❌ ÉCHEC: Tests Actes[0m
+
+[0;34m🔒 3. TESTS DE SÉCURITÉ[0m
+
+[1;33m▶ Exécution: Sécurité[0m
+Creating test database for alias 'default' ('file:memorydb_default?mode=memory&cache=shared')...
+Found 8 test(s).
+Operations to perform:
+  Synchronize unmigrated apps: corsheaders, django_filters, drf_yasg, messages, rest_framework, staticfiles
+  Apply all migrations: accounts, actes, admin, auth, contenttypes, provinces, sessions, token_blacklist
+Synchronizing apps without migrations:
+  Creating tables...
+    Running deferred SQL...
+Running migrations:
+  Applying contenttypes.0001_initial... OK
+  Applying contenttypes.0002_remove_content_type_name... OK
+  Applying auth.0001_initial... OK
+  Applying auth.0002_alter_permission_name_max_length... OK
+  Applying auth.0003_alter_user_email_max_length... OK
+  Applying auth.0004_alter_user_username_opts... OK
+  Applying auth.0005_alter_user_last_login_null... OK
+  Applying auth.0006_require_contenttypes_0002... OK
+  Applying auth.0007_alter_validators_add_error_messages... OK
+  Applying auth.0008_alter_user_username_max_length... OK
+  Applying auth.0009_alter_user_last_name_max_length... OK
+  Applying auth.0010_alter_group_name_max_length... OK
+  Applying auth.0011_update_proxy_permissions... OK
+  Applying auth.0012_alter_user_first_name_max_length... OK
+  Applying accounts.0001_initial... OK
+  Applying accounts.0002_alter_user_groups_alter_user_user_permissions... OK
+  Applying accounts.0003_remove_user_is_admin_user_phone_number... OK
+  Applying accounts.0004_user_role... OK
+  Applying accounts.0005_alter_user_options_user_account_locked_until_and_more... OK
+  Applying provinces.0001_initial... OK
+  Applying provinces.0002_alter_province_name... OK
+  Applying actes.0001_initial... OK
+  Applying actes.0002_actenaissance_created_by_actenaissance_modified_by... OK
+  Applying actes.0003_alter_actenaissance_options_actenaissance_status_and_more... OK
+  Applying admin.0001_initial... OK
+  Applying admin.0002_logentry_remove_auto_add... OK
+  Applying admin.0003_logentry_add_action_flag_choices... OK
+  Applying sessions.0001_initial... OK
+  Applying token_blacklist.0001_initial... OK
+  Applying token_blacklist.0002_outstandingtoken_jti_hex... OK
+  Applying token_blacklist.0003_auto_20171017_2007... OK
+  Applying token_blacklist.0004_auto_20171017_2013... OK
+  Applying token_blacklist.0005_remove_outstandingtoken_jti... OK
+  Applying token_blacklist.0006_auto_20171017_2113... OK
+  Applying token_blacklist.0007_auto_20171017_2214... OK
+  Applying token_blacklist.0008_migrate_to_bigautofield... OK
+  Applying token_blacklist.0010_fix_migrate_to_bigautofield... OK
+  Applying token_blacklist.0011_linearizes_history... OK
+  Applying token_blacklist.0012_alter_outstandingtoken_user... OK
+  Applying token_blacklist.0013_alter_blacklistedtoken_options_and_more...test_brute_force_protection (security_tests.SecurityTests.test_brute_force_protection)
+Test protection contre brute force ... ERROR 2026-03-13 23:05:58,265 Exception: ValidationError - Detail: {'non_field_errors': [ErrorDetail(string="Nom d'utilisateur ou mot de passe incorrect", code='invalid')], 'status_code': 400} - User: Anonymous
+ERROR 2026-03-13 23:05:58,265 Exception: ValidationError - Detail: {'non_field_errors': [ErrorDetail(string="Nom d'utilisateur ou mot de passe incorrect", code='invalid')], 'status_code': 400} - User: Anonymous
+INFO 2026-03-13 23:05:58,266 Request: POST /api/accounts/login/ - User: Anonymous - Status: 400 - Duration: 1.24s
+INFO 2026-03-13 23:05:58,266 Request: POST /api/accounts/login/ - User: Anonymous - Status: 400 - Duration: 1.24s
+WARNING 2026-03-13 23:05:58,277 Bad Request: /api/accounts/login/
+ERROR 2026-03-13 23:05:59,531 Exception: ValidationError - Detail: {'non_field_errors': [ErrorDetail(string="Nom d'utilisateur ou mot de passe incorrect", code='invalid')], 'status_code': 400} - User: Anonymous
+ERROR 2026-03-13 23:05:59,531 Exception: ValidationError - Detail: {'non_field_errors': [ErrorDetail(string="Nom d'utilisateur ou mot de passe incorrect", code='invalid')], 'status_code': 400} - User: Anonymous
+INFO 2026-03-13 23:05:59,532 Request: POST /api/accounts/login/ - User: Anonymous - Status: 400 - Duration: 1.25s
+INFO 2026-03-13 23:05:59,532 Request: POST /api/accounts/login/ - User: Anonymous - Status: 400 - Duration: 1.25s
+WARNING 2026-03-13 23:05:59,532 Bad Request: /api/accounts/login/
+ERROR 2026-03-13 23:06:00,653 Exception: ValidationError - Detail: {'non_field_errors': [ErrorDetail(string="Nom d'utilisateur ou mot de passe incorrect", code='invalid')], 'status_code': 400} - User: Anonymous
+ERROR 2026-03-13 23:06:00,653 Exception: ValidationError - Detail: {'non_field_errors': [ErrorDetail(string="Nom d'utilisateur ou mot de passe incorrect", code='invalid')], 'status_code': 400} - User: Anonymous
+INFO 2026-03-13 23:06:00,654 Request: POST /api/accounts/login/ - User: Anonymous - Status: 400 - Duration: 1.12s
+INFO 2026-03-13 23:06:00,654 Request: POST /api/accounts/login/ - User: Anonymous - Status: 400 - Duration: 1.12s
+WARNING 2026-03-13 23:06:00,654 Bad Request: /api/accounts/login/
+ERROR 2026-03-13 23:06:00,655 Exception: Ratelimited - Detail:  - User: Anonymous
+ERROR 2026-03-13 23:06:00,655 Exception: Ratelimited - Detail:  - User: Anonymous
+INFO 2026-03-13 23:06:00,656 Request: POST /api/accounts/login/ - User: Anonymous - Status: 403 - Duration: 0.00s
+INFO 2026-03-13 23:06:00,656 Request: POST /api/accounts/login/ - User: Anonymous - Status: 403 - Duration: 0.00s
+WARNING 2026-03-13 23:06:00,656 Forbidden: /api/accounts/login/
+FAIL
+test_jwt_token_security (security_tests.SecurityTests.test_jwt_token_security)
+Test sécurité des tokens JWT ... ERROR 2026-03-13 23:06:02,234 Exception: Ratelimited - Detail:  - User: Anonymous
+ERROR 2026-03-13 23:06:02,234 Exception: Ratelimited - Detail:  - User: Anonymous
+INFO 2026-03-13 23:06:02,234 Request: POST /api/accounts/login/ - User: Anonymous - Status: 403 - Duration: 0.00s
+INFO 2026-03-13 23:06:02,234 Request: POST /api/accounts/login/ - User: Anonymous - Status: 403 - Duration: 0.00s
+WARNING 2026-03-13 23:06:02,235 Forbidden: /api/accounts/login/
+ERROR
+test_password_policy (security_tests.SecurityTests.test_password_policy)
+Test politique de mots de passe ... ERROR 2026-03-13 23:06:03,889 Unhandled exception: object of type 'NoneType' has no len()
+Traceback (most recent call last):
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/django/utils/decorators.py", line 48, in _wrapper
+    return bound_method(*args, **kwargs)
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/django_ratelimit/decorators.py", line 27, in _wrapped
+    return fn(request, *args, **kw)
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/accounts/views.py", line 48, in register
+    serializer.is_valid(raise_exception=True)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/rest_framework/serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/rest_framework/serializers.py", line 447, in run_validation
+    value = self.validate(value)
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/accounts/serializers.py", line 60, in validate
+    validate_password(data.get('password'))
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/django/contrib/auth/password_validation.py", line 53, in validate_password
+    validator.validate(password, user)
+    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/django/contrib/auth/password_validation.py", line 108, in validate
+    if len(password) < self.min_length:
+       ~~~^^^^^^^^^^
+TypeError: object of type 'NoneType' has no len()
+ERROR 2026-03-13 23:06:03,889 Unhandled exception: object of type 'NoneType' has no len()
+Traceback (most recent call last):
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/django/utils/decorators.py", line 48, in _wrapper
+    return bound_method(*args, **kwargs)
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/django_ratelimit/decorators.py", line 27, in _wrapped
+    return fn(request, *args, **kw)
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/accounts/views.py", line 48, in register
+    serializer.is_valid(raise_exception=True)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/rest_framework/serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/rest_framework/serializers.py", line 447, in run_validation
+    value = self.validate(value)
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/accounts/serializers.py", line 60, in validate
+    validate_password(data.get('password'))
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/django/contrib/auth/password_validation.py", line 53, in validate_password
+    validator.validate(password, user)
+    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/django/contrib/auth/password_validation.py", line 108, in validate
+    if len(password) < self.min_length:
+       ~~~^^^^^^^^^^
+TypeError: object of type 'NoneType' has no len()
+INFO 2026-03-13 23:06:03,980 Request: POST /api/accounts/register/ - User: Anonymous - Status: 500 - Duration: 0.20s
+INFO 2026-03-13 23:06:03,980 Request: POST /api/accounts/register/ - User: Anonymous - Status: 500 - Duration: 0.20s
+ERROR 2026-03-13 23:06:03,981 Internal Server Error: /api/accounts/register/
+FAIL
+test_rate_limiting_login (security_tests.SecurityTests.test_rate_limiting_login)
+Test rate limiting sur login ... ERROR 2026-03-13 23:06:05,630 Exception: Ratelimited - Detail:  - User: Anonymous
+ERROR 2026-03-13 23:06:05,630 Exception: Ratelimited - Detail:  - User: Anonymous
+INFO 2026-03-13 23:06:05,630 Request: POST /api/accounts/login/ - User: Anonymous - Status: 403 - Duration: 0.00s
+INFO 2026-03-13 23:06:05,630 Request: POST /api/accounts/login/ - User: Anonymous - Status: 403 - Duration: 0.00s
+WARNING 2026-03-13 23:06:05,631 Forbidden: /api/accounts/login/
+FAIL
+test_rate_limiting_register (security_tests.SecurityTests.test_rate_limiting_register)
+Test rate limiting sur register ... ERROR 2026-03-13 23:06:07,283 Unhandled exception: object of type 'NoneType' has no len()
+Traceback (most recent call last):
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/django/utils/decorators.py", line 48, in _wrapper
+    return bound_method(*args, **kwargs)
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/django_ratelimit/decorators.py", line 27, in _wrapped
+    return fn(request, *args, **kw)
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/accounts/views.py", line 48, in register
+    serializer.is_valid(raise_exception=True)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/rest_framework/serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/rest_framework/serializers.py", line 447, in run_validation
+    value = self.validate(value)
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/accounts/serializers.py", line 60, in validate
+    validate_password(data.get('password'))
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/django/contrib/auth/password_validation.py", line 53, in validate_password
+    validator.validate(password, user)
+    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/django/contrib/auth/password_validation.py", line 108, in validate
+    if len(password) < self.min_length:
+       ~~~^^^^^^^^^^
+TypeError: object of type 'NoneType' has no len()
+ERROR 2026-03-13 23:06:07,283 Unhandled exception: object of type 'NoneType' has no len()
+Traceback (most recent call last):
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/django/utils/decorators.py", line 48, in _wrapper
+    return bound_method(*args, **kwargs)
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/django_ratelimit/decorators.py", line 27, in _wrapped
+    return fn(request, *args, **kw)
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/accounts/views.py", line 48, in register
+    serializer.is_valid(raise_exception=True)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/rest_framework/serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/rest_framework/serializers.py", line 447, in run_validation
+    value = self.validate(value)
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/accounts/serializers.py", line 60, in validate
+    validate_password(data.get('password'))
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/django/contrib/auth/password_validation.py", line 53, in validate_password
+    validator.validate(password, user)
+    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/venv/lib/python3.13/site-packages/django/contrib/auth/password_validation.py", line 108, in validate
+    if len(password) < self.min_length:
+       ~~~^^^^^^^^^^
+TypeError: object of type 'NoneType' has no len()
+INFO 2026-03-13 23:06:07,285 Request: POST /api/accounts/register/ - User: Anonymous - Status: 500 - Duration: 0.00s
+INFO 2026-03-13 23:06:07,285 Request: POST /api/accounts/register/ - User: Anonymous - Status: 500 - Duration: 0.00s
+ERROR 2026-03-13 23:06:07,286 Internal Server Error: /api/accounts/register/
+FAIL
+test_session_hijacking_protection (security_tests.SecurityTests.test_session_hijacking_protection)
+Test protection contre le vol de session ... ERROR 2026-03-13 23:06:08,390 Exception: Ratelimited - Detail:  - User: Anonymous
+ERROR 2026-03-13 23:06:08,390 Exception: Ratelimited - Detail:  - User: Anonymous
+INFO 2026-03-13 23:06:08,390 Request: POST /api/accounts/login/ - User: Anonymous - Status: 403 - Duration: 0.00s
+INFO 2026-03-13 23:06:08,390 Request: POST /api/accounts/login/ - User: Anonymous - Status: 403 - Duration: 0.00s
+WARNING 2026-03-13 23:06:08,391 Forbidden: /api/accounts/login/
+ERROR
+test_sql_injection_protection (security_tests.SecurityTests.test_sql_injection_protection)
+Test protection contre injection SQL ... INFO 2026-03-13 23:06:09,607 Request: GET /api/actes/ - User: testuser (Utilisateur) - Status: 200 - Duration: 0.01s
+INFO 2026-03-13 23:06:09,607 Request: GET /api/actes/ - User: testuser (Utilisateur) - Status: 200 - Duration: 0.01s
+ok
+test_xss_protection (security_tests.SecurityTests.test_xss_protection)
+Test protection contre XSS ... INFO 2026-03-13 23:06:10,992 Request: GET /api/actes/ - User: testuser (Utilisateur) - Status: 200 - Duration: 0.01s
+INFO 2026-03-13 23:06:10,992 Request: GET /api/actes/ - User: testuser (Utilisateur) - Status: 200 - Duration: 0.01s
+ok
+
+======================================================================
+ERROR: test_jwt_token_security (security_tests.SecurityTests.test_jwt_token_security)
+Test sécurité des tokens JWT
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/security_tests.py", line 102, in test_jwt_token_security
+    token = response.data['access']
+            ~~~~~~~~~~~~~^^^^^^^^^^
+KeyError: 'access'
+
+======================================================================
+ERROR: test_session_hijacking_protection (security_tests.SecurityTests.test_session_hijacking_protection)
+Test protection contre le vol de session
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/security_tests.py", line 150, in test_session_hijacking_protection
+    token = response.data['access']
+            ~~~~~~~~~~~~~^^^^^^^^^^
+KeyError: 'access'
+
+======================================================================
+FAIL: test_brute_force_protection (security_tests.SecurityTests.test_brute_force_protection)
+Test protection contre brute force
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/security_tests.py", line 173, in test_brute_force_protection
+    self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 403 != 400
+
+======================================================================
+FAIL: test_password_policy (security_tests.SecurityTests.test_password_policy)
+Test politique de mots de passe
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/security_tests.py", line 140, in test_password_policy
+    self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 500 != 400
+
+======================================================================
+FAIL: test_rate_limiting_login (security_tests.SecurityTests.test_rate_limiting_login)
+Test rate limiting sur login
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/security_tests.py", line 38, in test_rate_limiting_login
+    self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 403 != 400
+
+======================================================================
+FAIL: test_rate_limiting_register (security_tests.SecurityTests.test_rate_limiting_register)
+Test rate limiting sur register
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/security_tests.py", line 63, in test_rate_limiting_register
+    self.assertIn(response.status_code, [status.HTTP_201_CREATED, status.HTTP_400_BAD_REQUEST])
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 500 not found in [201, 400]
+
+----------------------------------------------------------------------
+Ran 8 tests in 15.195s
+
+FAILED (failures=4, errors=2)
+Destroying test database for alias 'default' ('file:memorydb_default?mode=memory&cache=shared')...
+ OK
+System check identified no issues (0 silenced).
+[0;31m❌ ÉCHEC: Sécurité[0m
+
+[0;34m⚡ 4. TESTS DE PERFORMANCE[0m
+
+[1;33m▶ Exécution: Performance[0m
+performance_tests (unittest.loader._FailedTest.performance_tests) ... ERROR
+
+======================================================================
+ERROR: performance_tests (unittest.loader._FailedTest.performance_tests)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: performance_tests
+Traceback (most recent call last):
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/unittest/loader.py", line 137, in loadTestsFromName
+    module = __import__(module_name)
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/performance_tests.py", line 5, in <module>
+    from .models import ActeNaissance
+ImportError: attempted relative import with no known parent package
+
+
+----------------------------------------------------------------------
+Ran 1 test in 0.001s
+
+FAILED (errors=1)
+Found 1 test(s).
+Skipping setup of unused database(s): default.
+System check identified no issues (0 silenced).
+[0;31m❌ ÉCHEC: Performance[0m
+
+[0;34m🔄 5. TESTS D'INTÉGRATION[0m
+
+[1;33m▶ Exécution: Intégration API[0m
+./run_tests.sh: eval: line 30: unexpected EOF while looking for matching `''
+./run_tests.sh: eval: line 31: syntax error: unexpected end of file
+[0;31m❌ ÉCHEC: Intégration API[0m
+
+[0;34m📊 6. COUVERTURE DE CODE[0m
+
+[1;33m▶ Exécution: Couverture[0m
+Traceback (most recent call last):
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/manage.py", line 11, in main
+    from django.core.management import execute_from_command_line
+ModuleNotFoundError: No module named 'django'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/manage.py", line 22, in <module>
+    main()
+    ~~~~^^
+  File "/Users/mba-koumba/Documents/BORNSAFE FOLDER/BornSafe/bornsafe_backend/manage.py", line 13, in main
+    raise ImportError(
+    ...<3 lines>...
+    ) from exc
+ImportError: Couldn't import Django. Are you sure it's installed and available on your PYTHONPATH environment variable? Did you forget to activate a virtual environment?
+[0;31m❌ ÉCHEC: Couverture[0m
+
+[0;34m===================================[0m
+[0;34m📊 RÉSUMÉ DES TESTS[0m
+[0;34m===================================[0m
+Total: 9
+[0;32mRéussis: 2[0m
+[0;31mÉchoués: 7[0m
+
+[0;31m❌ CERTAINS TESTS ONT ÉCHOUÉ[0m
