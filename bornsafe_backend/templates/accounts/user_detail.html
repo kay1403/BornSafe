@@ -1,0 +1,99 @@
+{% extends "base/base.html" %}
+
+{% block title %}Détail utilisateur - {{ user.username }}{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div class="bg-gradient-to-r from-gabon-flag-green to-gabon-flag-blue px-6 py-8 text-white">
+            <div class="flex items-center space-x-4">
+                <div class="w-20 h-20 rounded-full bg-white/20 flex items-center justify-center text-3xl font-bold">
+                    {{ user.first_name|first|default:user.username|first|upper }}
+                </div>
+                <div>
+                    <h2 class="text-2xl font-bold">{{ user.get_full_name|default:user.username }}</h2>
+                    <p class="text-white/80">{{ user.get_role_display }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="p-6">
+            <dl class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Nom d'utilisateur</dt>
+                    <dd class="mt-1 text-gray-900">{{ user.username }}</dd>
+                </div>
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Email</dt>
+                    <dd class="mt-1 text-gray-900">{{ user.email }}</dd>
+                </div>
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Prénom</dt>
+                    <dd class="mt-1 text-gray-900">{{ user.first_name|default:"-" }}</dd>
+                </div>
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Nom</dt>
+                    <dd class="mt-1 text-gray-900">{{ user.last_name|default:"-" }}</dd>
+                </div>
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Téléphone</dt>
+                    <dd class="mt-1 text-gray-900">{{ user.phone_number|default:"-" }}</dd>
+                </div>
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Rôle</dt>
+                    <dd class="mt-1"><span class="badge badge-info">{{ user.get_role_display }}</span></dd>
+                </div>
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Statut</dt>
+                    <dd class="mt-1">
+                        {% if user.is_active %}
+                        <span class="badge badge-success">Actif</span>
+                        {% else %}
+                        <span class="badge badge-danger">Inactif</span>
+                        {% endif %}
+                    </dd>
+                </div>
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Staff</dt>
+                    <dd class="mt-1">{{ user.is_staff|yesno:"Oui,Non" }}</dd>
+                </div>
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Superuser</dt>
+                    <dd class="mt-1">{{ user.is_superuser|yesno:"Oui,Non" }}</dd>
+                </div>
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Date d'inscription</dt>
+                    <dd class="mt-1 text-gray-900">{{ user.date_joined|date:"d/m/Y H:i" }}</dd>
+                </div>
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Dernière connexion</dt>
+                    <dd class="mt-1 text-gray-900">{{ user.last_login|date:"d/m/Y H:i"|default:"Jamais" }}</dd>
+                </div>
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Dernière activité</dt>
+                    <dd class="mt-1 text-gray-900">{{ user.last_activity|date:"d/m/Y H:i"|default:"Jamais" }}</dd>
+                </div>
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Tentatives échouées</dt>
+                    <dd class="mt-1 text-gray-900">{{ user.failed_login_attempts }}</dd>
+                </div>
+            </dl>
+            
+            <div class="mt-6 flex justify-end space-x-3 pt-6 border-t">
+                <a href="{% url 'user-list' %}" class="btn-secondary">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                    </svg>
+                    Retour
+                </a>
+                <form method="post" action="{% url 'user-toggle' user.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="{% if user.is_active %}btn-danger{% else %}btn-primary{% endif %}">
+                        {% if user.is_active %}Désactiver le compte{% else %}Activer le compte{% endif %}
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

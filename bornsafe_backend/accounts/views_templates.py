@@ -113,3 +113,27 @@ def logout_view(request):
     """Déconnexion"""
     logout(request)
     return redirect('home')
+
+from .forms_mairie import MairieCreationForm
+
+@login_required
+def mairie_create(request):
+    """Créer un compte mairie (super admin seulement)"""
+    if request.user.role != 'super_admin':
+        messages.error(request, "Action non autorisée")
+        return redirect('dashboard')
+    
+    if request.method == 'POST':
+        form = MairieCreationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            messages.success(request, f"Compte mairie créé avec succès pour {user.username}")
+            return redirect('user-list')
+        else:
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f"{field}: {error}")
+    else:
+        form = MairieCreationForm()
+    
+    return render(request, 'accounts/mairie_create.html', {'form': form})

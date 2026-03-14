@@ -41,6 +41,16 @@
                 </button>
             </form>
             {% endif %}
+            
+            <!-- Bouton de suppression pour super admin uniquement -->
+            {% if user.role == 'super_admin' %}
+            <a href="{% url 'acte-delete' acte.id %}" class="btn-danger">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                </svg>
+                Supprimer
+            </a>
+            {% endif %}
             {% endif %}
             
             <a href="{% url 'acte-download-pdf' acte.id %}" class="btn-primary">
@@ -208,11 +218,6 @@
                     <h3 class="text-lg font-medium text-gray-900">Actions rapides</h3>
                 </div>
                 <div class="card-body space-y-2">
-                    <a href="{% url 'acte-verify' %}?numero={{ acte.numero_acte }}" 
-                       class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg">
-                        🔍 Vérifier cet acte
-                    </a>
-                    
                     <a href="#" onclick="window.print()" 
                        class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg">
                         🖨️ Imprimer
@@ -221,8 +226,7 @@
                     {% if user.role == 'super_admin' %}
                     <hr class="my-2">
                     <a href="{% url 'acte-delete' acte.id %}" 
-                       class="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg"
-                       onclick="return confirm('Êtes-vous sûr de vouloir supprimer cet acte ?')">
+                       class="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg">
                         🗑️ Supprimer définitivement
                     </a>
                     {% endif %}

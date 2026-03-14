@@ -1,0 +1,3496 @@
+========== BORNSAFE BACKEND ==========
+Date: Sat Mar 14 18:05:59 CAT 2026
+========================================
+
+
+========== 1. CONFIGURATION PRINCIPALE ==========
+"""
+Django settings for bornsafe_backend project.
+Version finale - Corrigée et optimisée.
+"""
+
+from pathlib import Path
+from datetime import timedelta
+import os
+import environ
+import sys
+from django.contrib.messages import constants as messages
+
+# ----------------------------
+# BASE DIR & ENVIRONNEMENT
+# ----------------------------
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+env = environ.Env(
+    DEBUG=(bool, False),
+    SESSION_COOKIE_SECURE=(bool, False),
+    CSRF_COOKIE_SECURE=(bool, False),
+    SECURE_SSL_REDIRECT=(bool, False),
+)
+
+# Lire le fichier .env (priorité au fichier à la racine)
+env_file = os.path.join(BASE_DIR.parent, '.env')
+if os.path.exists(env_file):
+    environ.Env.read_env(env_file)
+else:
+    environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
+
+# ----------------------------
+# SÉCURITÉ DE BASE
+# ----------------------------
+SECRET_KEY = env("SECRET_KEY")
+DEBUG = env.bool("DEBUG", default=False)
+ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1"])
+
+# ----------------------------
+# CONFIGURATION DES SESSIONS (CORRIGÉE)
+# ----------------------------
+# En local (DEBUG=True), on désactive la sécurité SSL
+SESSION_COOKIE_SECURE = env.bool("SESSION_COOKIE_SECURE", default=not DEBUG)
+CSRF_COOKIE_SECURE = env.bool("CSRF_COOKIE_SECURE", default=not DEBUG)
+SECURE_SSL_REDIRECT = env.bool("SECURE_SSL_REDIRECT", default=not DEBUG)
+
+CSRF_COOKIE_HTTPONLY = True
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Lax'
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+SESSION_COOKIE_AGE = 1209600  # 2 semaines
+SESSION_SAVE_EVERY_REQUEST = True
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+
+# ----------------------------
+# SÉCURITÉ HTTP
+# ----------------------------
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_BROWSER_XSS_FILTER = True
+X_FRAME_OPTIONS = 'DENY'
+
+if not DEBUG:
+    SECURE_HSTS_SECONDS = env.int("SECURE_HSTS_SECONDS", default=31536000)
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+
+# ----------------------------
+# CORS & CSRF TRUSTED
+# ----------------------------
+CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=["http://localhost:3000", "http://localhost:8000"])
+CORS_ALLOW_CREDENTIALS = True
+CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=["http://localhost:3000", "http://localhost:8000"])
+
+# ----------------------------
+# APPLICATIONS
+# ----------------------------
+INSTALLED_APPS = [
+    # Django par défaut
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+
+    # Third-party apps
+    'rest_framework',
+    'rest_framework_simplejwt.token_blacklist',
+    'django_filters',
+    'drf_yasg',
+    'corsheaders',
+    'django_extensions',
+
+    # Apps BornSafe
+    'accounts.apps.AccountsConfig',
+    'actes.apps.ActesConfig',
+    'provinces.apps.ProvincesConfig',
+]
+
+# ----------------------------
+# MIDDLEWARE (ORDRE CORRECT)
+# ----------------------------
+MIDDLEWARE = [
+    'django.middleware.security.SecurityMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',  # DOIT ÊTRE AVANT AuthenticationMiddleware
+    'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',  # DOIT ÊTRE APRÈS SessionMiddleware
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'bornsafe_backend.middleware.RequestLoggingMiddleware',
+]
+
+# ----------------------------
+# URLS & TEMPLATES
+# ----------------------------
+ROOT_URLCONF = 'bornsafe_backend.urls'
+
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [BASE_DIR / 'templates'],
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.template.context_processors.debug',
+                'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
+                'bornsafe_backend.context_processors.site_info',
+            ],
+        },
+    },
+]
+
+WSGI_APPLICATION = 'bornsafe_backend.wsgi.application'
+
+# ----------------------------
+# STATIC & MEDIA FILES
+# ----------------------------
+STATIC_URL = '/static/'
+STATICFILES_DIRS = [BASE_DIR / 'static']
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
+# Création automatique des dossiers
+os.makedirs(MEDIA_ROOT, exist_ok=True)
+os.makedirs(STATIC_ROOT, exist_ok=True)
+
+# ----------------------------
+# DATABASE
+# ----------------------------
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': env("DB_NAME"),
+        'USER': env("DB_USER"),
+        'PASSWORD': env("DB_PASSWORD"),
+        'HOST': env("DB_HOST"),
+        'PORT': env("DB_PORT"),
+        'CONN_MAX_AGE': 60,
+        'OPTIONS': {
+            'connect_timeout': 10,
+        }
+    }
+}
+
+# Configuration pour les tests
+if 'test' in sys.argv:
+    DATABASES['default'] = {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': ':memory:',
+    }
+
+# ----------------------------
+# CACHE
+# ----------------------------
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-snowflake',
+    }
+}
+
+# ----------------------------
+# AUTHENTIFICATION
+# ----------------------------
+AUTH_USER_MODEL = 'accounts.User'
+
+LOGIN_URL = '/comptes/login/'
+LOGIN_REDIRECT_URL = '/dashboard/'
+LOGOUT_REDIRECT_URL = '/'
+
+AUTH_PASSWORD_VALIDATORS = [
+    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator', 'OPTIONS': {'min_length': 8}},
+    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
+]
+
+# ----------------------------
+# INTERNATIONALISATION
+# ----------------------------
+LANGUAGE_CODE = 'fr-fr'
+TIME_ZONE = 'Africa/Kinshasa'
+USE_I18N = True
+USE_TZ = True
+
+# ----------------------------
+# DRF SETTINGS
+# ----------------------------
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',
+    ),
+    'DEFAULT_SCHEMA_CLASS': 'rest_framework.schemas.openapi.AutoSchema',
+    'DEFAULT_FILTER_BACKENDS': [
+        'django_filters.rest_framework.DjangoFilterBackend',
+        'rest_framework.filters.OrderingFilter',
+        'rest_framework.filters.SearchFilter',
+    ],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 20,
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle'
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '100/day',
+        'user': '1000/day'
+    },
+    'EXCEPTION_HANDLER': 'bornsafe_backend.exceptions.custom_exception_handler',
+    'DATETIME_FORMAT': '%d/%m/%Y %H:%M:%S',
+}
+
+# ----------------------------
+# JWT SETTINGS
+# ----------------------------
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=env.int("ACCESS_TOKEN_LIFETIME_MINUTES", default=15)),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=env.int("REFRESH_TOKEN_LIFETIME_DAYS", default=7)),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'UPDATE_LAST_LOGIN': True,
+    'ALGORITHM': 'HS256',
+    'SIGNING_KEY': SECRET_KEY,
+    'AUTH_HEADER_TYPES': ('Bearer',),
+    'AUTH_HEADER_NAME': 'HTTP_AUTHORIZATION',
+    'USER_ID_FIELD': 'id',
+    'USER_ID_CLAIM': 'user_id',
+    'JTI_CLAIM': 'jti',
+}
+
+# ----------------------------
+# SWAGGER SETTINGS
+# ----------------------------
+SWAGGER_SETTINGS = {
+    'SECURITY_DEFINITIONS': {
+        'Bearer': {
+            'type': 'apiKey',
+            'name': 'Authorization',
+            'in': 'header',
+            'description': "Entrez: Bearer <votre_token_jwt>"
+        }
+    },
+    'USE_SESSION_AUTH': False,
+    'JSON_EDITOR': True,
+    'SUPPORTED_SUBMIT_METHODS': [
+        'get', 'post', 'put', 'delete', 'patch'
+    ],
+}
+
+# ----------------------------
+# LOGGING
+# ----------------------------
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {asctime} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+        },
+        'file': {
+            'class': 'logging.FileHandler',
+            'filename': BASE_DIR / 'logs' / 'bornsafe.log',
+            'formatter': 'verbose',
+        },
+    },
+    'root': {
+        'handlers': ['console', 'file'],
+        'level': 'INFO',
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'bornsafe': {
+            'handlers': ['console', 'file'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+    },
+}
+
+# Créer le dossier logs
+os.makedirs(BASE_DIR / 'logs', exist_ok=True)
+
+# ----------------------------
+# MESSAGE TAGS (pour Tailwind)
+# ----------------------------
+MESSAGE_TAGS = {
+    messages.DEBUG: 'bg-gray-100 text-gray-800',
+    messages.INFO: 'bg-blue-100 text-blue-800',
+    messages.SUCCESS: 'bg-green-100 text-green-800',
+    messages.WARNING: 'bg-yellow-100 text-yellow-800',
+    messages.ERROR: 'bg-red-100 text-red-800',
+}
+
+# ----------------------------
+# DEFAULT PK
+# ----------------------------
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Ajoutez ceci TOUT À LA FIN de votre fichier settings.py pour forcer le test
+SESSION_COOKIE_SECURE = False
+CSRF_COOKIE_SECURE = False
+SECURE_SSL_REDIRECT = False
+SESSION_COOKIE_DOMAIN = None
+SESSION_COOKIE_SAMESITE = 'Lax'"""
+URL configuration for bornsafe_backend project.
+"""
+
+from django.conf import settings
+from django.conf.urls.static import static
+from django.contrib import admin
+from django.urls import path, include, re_path
+from rest_framework import permissions
+from drf_yasg.views import get_schema_view
+from drf_yasg import openapi
+
+# Import des vues
+from actes.views_templates import dashboard, acte_list, acte_detail, acte_create, acte_update, acte_validate, acte_download_pdf
+from provinces.views_templates import province_list, province_create, province_update, province_delete
+from accounts.views_templates import profile, change_password, user_list, user_detail, user_toggle_active, logout_view, login_view
+from accounts.views_register import register_page
+
+# Vue d'accueil
+def home(request):
+    from django.shortcuts import render
+    return render(request, 'home.html')
+
+schema_view = get_schema_view(
+    openapi.Info(
+        title="BornSafe API",
+        default_version='v1',
+        description="Documentation de l'API BornSafe",
+        terms_of_service="https://www.google.com/policies/terms/",
+        contact=openapi.Contact(email="support@bornsafe.com"),
+        license=openapi.License(name="BSD License"),
+    ),
+    public=True,
+    permission_classes=[permissions.AllowAny],
+)
+
+# URLs API
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('api/accounts/', include('accounts.urls')),
+    path('api/provinces/', include('provinces.urls')),
+    path('api/actes/', include('actes.urls')),
+
+    # Swagger & Redoc
+    re_path(r'^swagger(?P<format>\.json|\.yaml)$', schema_view.without_ui(cache_timeout=0), name='schema-json'),
+    path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
+    path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
+]
+
+# URLs Templates
+urlpatterns += [
+    path('', home, name='home'),
+    path('inscription/', register_page, name='register-page'),
+    path('dashboard/', dashboard, name='dashboard'),
+    path('comptes/login/', login_view, name='login'),
+    path('comptes/logout/', logout_view, name='logout'),
+    path('comptes/profil/', profile, name='profile'),
+    path('comptes/changer-mot-de-passe/', change_password, name='change-password'),
+    path('comptes/utilisateurs/', user_list, name='user-list'),
+    path('comptes/utilisateurs/<int:pk>/', user_detail, name='user-detail'),
+    path('comptes/utilisateurs/<int:pk>/toggle/', user_toggle_active, name='user-toggle'),
+    path('actes/', acte_list, name='acte-list'),
+    path('actes/nouveau/', acte_create, name='acte-create'),
+    path('actes/<uuid:pk>/', acte_detail, name='acte-detail'),
+    path('actes/<uuid:pk>/modifier/', acte_update, name='acte-edit'),
+    path('actes/<uuid:pk>/valider/', acte_validate, name='acte-validate'),
+    path('actes/<uuid:pk>/pdf/', acte_download_pdf, name='acte-download-pdf'),
+    path('provinces/', province_list, name='province-list'),
+    path('provinces/creer/', province_create, name='province-create'),
+    path('provinces/<int:pk>/modifier/', province_update, name='province-edit'),
+    path('provinces/<int:pk>/supprimer/', province_delete, name='province-delete'),
+]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+#!/usr/bin/env python
+"""Django's command-line utility for administrative tasks."""
+import os
+import sys
+
+
+def main():
+    """Run administrative tasks."""
+    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'bornsafe_backend.settings')
+    try:
+        from django.core.management import execute_from_command_line
+    except ImportError as exc:
+        raise ImportError(
+            "Couldn't import Django. Are you sure it's installed and "
+            "available on your PYTHONPATH environment variable? Did you "
+            "forget to activate a virtual environment?"
+        ) from exc
+    execute_from_command_line(sys.argv)
+
+
+if __name__ == '__main__':
+    main()
+# Django
+Django==5.2.6
+djangorestframework==3.16.1
+django-cors-headers==4.6.0
+django-environ==0.12.0
+django-filter==25.1
+django-ratelimit==4.1.0
+
+# Auth
+djangorestframework-simplejwt==5.5.1
+PyJWT==2.10.1
+
+# Database
+psycopg2-binary==2.9.10
+
+# Files & Images
+Pillow==11.3.0
+qrcode==8.2
+reportlab==4.4.4
+
+# API Documentation
+drf-yasg==1.21.10
+uritemplate==4.2.0
+
+# Security
+python-decouple==3.8
+bcrypt==4.2.1
+python-dotenv==1.0.1
+
+# Utils
+asgiref==3.9.1
+sqlparse==0.5.3
+pytz==2025.2
+charset-normalizer==3.4.3
+packaging==25.0
+inflection==0.5.1
+PyYAML==6.0.2
+
+# Performance
+redis==5.2.1
+django-redis==5.4.0
+
+
+========== 2. MIDDLEWARE ET UTILITAIRES ==========
+import logging
+import time
+from django.utils import timezone
+
+logger = logging.getLogger('bornsafe')
+
+class RequestLoggingMiddleware:
+    """Middleware pour logger toutes les requêtes"""
+    
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        # Temps de début
+        start_time = time.time()
+        
+        # Traitement de la requête
+        response = self.get_response(request)
+        
+        # Temps de fin
+        duration = time.time() - start_time
+        
+        # Logger la requête
+        logger.info(
+            f"Request: {request.method} {request.path} - "
+            f"User: {request.user if request.user.is_authenticated else 'Anonymous'} - "
+            f"Status: {response.status_code} - Duration: {duration:.2f}s"
+        )
+        
+        return response
+import logging
+
+logger = logging.getLogger('bornsafe')
+
+class SessionDebugMiddleware:
+    """Middleware pour debugger les sessions"""
+    
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        # Avant la vue
+        if request.user.is_authenticated:
+            logger.info(f"Session avant: user={request.user.username}, session_key={request.session.session_key}")
+        
+        response = self.get_response(request)
+        
+        # Après la vue
+        if request.user.is_authenticated:
+            logger.info(f"Session après: user={request.user.username}, session_key={request.session.session_key}")
+        
+        return response
+from rest_framework.views import exception_handler
+from rest_framework.response import Response
+from rest_framework import status
+import logging
+
+logger = logging.getLogger('bornsafe')
+
+def custom_exception_handler(exc, context):
+    """Gestionnaire d'exceptions personnalisé"""
+    
+    # Appeler le gestionnaire par défaut
+    response = exception_handler(exc, context)
+    
+    if response is not None:
+        response.data['status_code'] = response.status_code
+        
+        # Logguer l'erreur
+        logger.error(
+            f"Exception: {exc.__class__.__name__} - "
+            f"Detail: {str(exc)} - "
+            f"User: {context['request'].user if context['request'].user.is_authenticated else 'Anonymous'}"
+        )
+    else:
+        # Erreurs non gérées par DRF
+        logger.exception(f"Unhandled exception: {str(exc)}")
+        response = Response(
+            {
+                'error': 'Une erreur inattendue est survenue',
+                'detail': str(exc) if context['request'].user.is_superuser else None
+            },
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+    
+    return response
+from django.conf import settings
+from datetime import datetime
+
+def site_info(request):
+    """Informations du site pour les templates"""
+    return {
+        'site_name': 'BornSafe Mairie',
+        'site_description': 'Système de gestion des actes de naissance',
+        'current_year': datetime.now().year,
+        'gabon_regions': [
+            'Estuaire', 'Haut-Ogooué', 'Moyen-Ogooué', 'Ngounié', 
+            'Nyanga', 'Ogooué-Ivindo', 'Ogooué-Lolo', 'Ogooué-Maritime',
+            'Woleu-Ntem'
+        ],
+    }
+
+
+========== 3. APPLICATION ACCOUNTS ==========
+----- 3.1 Modèles -----
+from django.contrib.auth.models import AbstractUser
+from django.db import models
+from django.core.validators import RegexValidator, MinLengthValidator
+from django.utils import timezone
+
+class User(AbstractUser):
+    """Modèle utilisateur amélioré avec validation"""
+    
+    # Validateur pour le numéro de téléphone
+    phone_regex = RegexValidator(
+        regex=r'^\+?1?\d{9,15}$',
+        message="Le numéro de téléphone doit être au format: '+999999999'. Jusqu'à 15 chiffres autorisés."
+    )
+    
+    phone_number = models.CharField(
+        max_length=20, 
+        blank=True, 
+        null=True,
+        validators=[phone_regex],
+        help_text="Numéro de téléphone au format international"
+    )
+    
+    ROLE_CHOICES = [
+        ('super_admin', 'Super Admin'),
+        ('mairie', 'Mairie'),
+        ('user', 'Utilisateur'),
+    ]
+    
+    role = models.CharField(
+        max_length=20, 
+        choices=ROLE_CHOICES, 
+        default='user',
+        db_index=True  # Index pour améliorer les performances des recherches par rôle
+    )
+    
+    # Champs de suivi
+    last_activity = models.DateTimeField(null=True, blank=True)
+    failed_login_attempts = models.IntegerField(default=0)
+    last_failed_login = models.DateTimeField(null=True, blank=True)
+    account_locked_until = models.DateTimeField(null=True, blank=True)
+    
+    class Meta:
+        indexes = [
+            models.Index(fields=['email']),
+            models.Index(fields=['role']),
+        ]
+    
+    def __str__(self):
+        return f"{self.username} ({self.get_role_display()})"
+    
+    def record_failed_login(self):
+        """Enregistre une tentative de connexion échouée"""
+        self.failed_login_attempts += 1
+        self.last_failed_login = timezone.now()
+        
+        # Verrouiller le compte après 5 tentatives échouées
+        if self.failed_login_attempts >= 5:
+            self.account_locked_until = timezone.now() + timezone.timedelta(minutes=30)
+        
+        self.save(update_fields=['failed_login_attempts', 'last_failed_login', 'account_locked_until'])
+    
+    def reset_failed_login_attempts(self):
+        """Réinitialise les tentatives de connexion échouées"""
+        self.failed_login_attempts = 0
+        self.account_locked_until = None
+        self.save(update_fields=['failed_login_attempts', 'account_locked_until'])
+    
+    def is_account_locked(self):
+        """Vérifie si le compte est verrouillé"""
+        if self.account_locked_until and self.account_locked_until > timezone.now():
+            return True
+        return False
+----- 3.2 Vues API -----
+from rest_framework import viewsets, status
+from rest_framework.response import Response
+from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
+from rest_framework.decorators import action
+from django.contrib.auth import get_user_model
+from django.utils import timezone
+from rest_framework_simplejwt.tokens import RefreshToken
+from .serializers import (
+    UtilisateurSerializer, EnregistrementSerializer, 
+    AdminCreationSerializer, LoginSerializer
+)
+import logging
+
+logger = logging.getLogger('bornsafe')
+User = get_user_model()
+
+class UserViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet pour gérer les utilisateurs.
+    """
+    queryset = User.objects.all().order_by('-date_joined')
+    
+    def get_serializer_class(self):
+        if self.action == 'register':
+            return EnregistrementSerializer
+        elif self.action == 'create_admin':
+            return AdminCreationSerializer
+        elif self.action == 'login':
+            return LoginSerializer
+        return UtilisateurSerializer
+
+    def get_permissions(self):
+        if self.action in ['create', 'register', 'login']:
+            return [AllowAny()]
+        elif self.action == 'create_admin':
+            return [IsAdminUser()]
+        elif self.action in ['me', 'update_profile', 'change_password']:
+            return [IsAuthenticated()]
+        return [IsAuthenticated()]
+
+    @action(detail=False, methods=['post'])
+    def register(self, request):
+        """Enregistrement d'un nouvel utilisateur"""
+        serializer = EnregistrementSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        
+        # Générer les tokens
+        refresh = RefreshToken.for_user(user)
+        
+        return Response({
+            'user': UtilisateurSerializer(user).data,
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
+        }, status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=['post'])
+    def login(self, request):
+        """Connexion utilisateur"""
+        serializer = LoginSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.validated_data['user']
+        
+        # Mettre à jour la dernière activité
+        user.last_activity = timezone.now()
+        user.save(update_fields=['last_activity'])
+        
+        # Générer les tokens
+        refresh = RefreshToken.for_user(user)
+        
+        logger.info(f"Connexion réussie: {user.username}")
+        
+        return Response({
+            'user': UtilisateurSerializer(user).data,
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
+        })
+
+    @action(detail=False, methods=['post'])
+    def create_admin(self, request):
+        """Création d'un admin par un super admin"""
+        if request.user.role != 'super_admin':
+            return Response(
+                {"error": "Seuls les super admins peuvent créer des admins"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        serializer = AdminCreationSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        admin = serializer.save()
+        
+        return Response(
+            UtilisateurSerializer(admin).data, 
+            status=status.HTTP_201_CREATED
+        )
+
+    @action(detail=False, methods=['get'])
+    def me(self, request):
+        """Récupérer le profil de l'utilisateur connecté"""
+        serializer = UtilisateurSerializer(request.user)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['put', 'patch'])
+    def update_profile(self, request):
+        """Mettre à jour son propre profil"""
+        user = request.user
+        serializer = UtilisateurSerializer(
+            user, 
+            data=request.data, 
+            partial=True,
+            context={'request': request}
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        
+        logger.info(f"Profil mis à jour: {user.username}")
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['post'])
+    def change_password(self, request):
+        """Changer son mot de passe"""
+        user = request.user
+        old_password = request.data.get('old_password')
+        new_password = request.data.get('new_password')
+        confirm_password = request.data.get('confirm_password')
+        
+        if not user.check_password(old_password):
+            return Response(
+                {"old_password": "Ancien mot de passe incorrect"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if new_password != confirm_password:
+            return Response(
+                {"confirm_password": "Les mots de passe ne correspondent pas"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        user.set_password(new_password)
+        user.save()
+        
+        logger.info(f"Mot de passe changé: {user.username}")
+        return Response(
+            {"message": "Mot de passe modifié avec succès"},
+            status=status.HTTP_200_OK
+        )
+
+    @action(detail=True, methods=['post'])
+    def toggle_active(self, request, pk=None):
+        """Activer/désactiver un utilisateur (admin uniquement)"""
+        if not request.user.is_staff:
+            return Response(
+                {"error": "Permission refusée"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        user = self.get_object()
+        user.is_active = not user.is_active
+        user.save()
+        
+        status_text = "activé" if user.is_active else "désactivé"
+        logger.info(f"Compte {status_text}: {user.username} par {request.user.username}")
+        
+        return Response({
+            "message": f"Compte {status_text}",
+            "is_active": user.is_active
+        })
+----- 3.3 Vues Templates -----
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.contrib.auth import update_session_auth_hash, logout, authenticate, login
+from django.contrib.auth.forms import PasswordChangeForm
+from django.contrib.auth import get_user_model
+from django.http import HttpResponseRedirect
+from django.urls import reverse
+
+User = get_user_model()
+
+def login_view(request):
+    """Connexion personnalisée avec session explicite"""
+    # Si déjà connecté, rediriger vers dashboard
+    if request.user.is_authenticated:
+        return redirect('dashboard')
+        
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        
+        # Authentifier l'utilisateur
+        user = authenticate(request, username=username, password=password)
+        
+        if user is not None:
+            # Connexion explicite avec création de session
+            login(request, user)
+            
+            # Forcer la sauvegarde de la session
+            request.session.save()
+            
+            # Vérifier que la session est bien créée
+            if not request.session.session_key:
+                request.session.create()
+            
+            messages.success(request, f"Bienvenue {user.username} !")
+            
+            # Redirection explicite vers dashboard
+            return HttpResponseRedirect(reverse('dashboard'))
+        else:
+            messages.error(request, "Nom d'utilisateur ou mot de passe incorrect")
+    
+    return render(request, 'accounts/login.html')
+
+@login_required
+def profile(request):
+    """Voir et modifier son profil"""
+    if request.method == 'POST':
+        user = request.user
+        user.first_name = request.POST.get('first_name', user.first_name)
+        user.last_name = request.POST.get('last_name', user.last_name)
+        user.email = request.POST.get('email', user.email)
+        user.phone_number = request.POST.get('phone_number', user.phone_number)
+        user.save()
+        messages.success(request, "Profil mis à jour avec succès")
+        return redirect('profile')
+    
+    return render(request, 'accounts/profil.html')
+
+@login_required
+def change_password(request):
+    """Changer le mot de passe"""
+    if request.method == 'POST':
+        form = PasswordChangeForm(request.user, request.POST)
+        if form.is_valid():
+            user = form.save()
+            update_session_auth_hash(request, user)
+            messages.success(request, "Mot de passe changé avec succès")
+            return redirect('profile')
+        else:
+            messages.error(request, "Erreur lors du changement de mot de passe")
+    else:
+        form = PasswordChangeForm(request.user)
+    
+    return render(request, 'accounts/change_password.html', {'form': form})
+
+@login_required
+def user_list(request):
+    """Liste des utilisateurs (admin seulement)"""
+    if request.user.role != 'super_admin':
+        messages.error(request, "Accès non autorisé")
+        return redirect('dashboard')
+    
+    users = User.objects.all().order_by('-date_joined')
+    return render(request, 'accounts/user_list.html', {'users': users})
+
+@login_required
+def user_detail(request, pk):
+    """Détail d'un utilisateur (admin seulement)"""
+    if request.user.role != 'super_admin':
+        messages.error(request, "Accès non autorisé")
+        return redirect('dashboard')
+    
+    user = get_object_or_404(User, pk=pk)
+    return render(request, 'accounts/user_detail.html', {'user': user})
+
+@login_required
+def user_toggle_active(request, pk):
+    """Activer/désactiver un utilisateur"""
+    if request.user.role != 'super_admin':
+        messages.error(request, "Accès non autorisé")
+        return redirect('dashboard')
+    
+    user = get_object_or_404(User, pk=pk)
+    user.is_active = not user.is_active
+    user.save()
+    
+    status = "activé" if user.is_active else "désactivé"
+    messages.success(request, f"Compte {user.username} {status}")
+    return redirect('user-list')
+
+def logout_view(request):
+    """Déconnexion"""
+    logout(request)
+    return redirect('home')
+----- 3.4 Vues Login -----
+----- 3.5 Vues Register -----
+from django.shortcuts import render, redirect
+from django.contrib import messages
+from django.contrib.auth import login
+from .forms import UserRegistrationForm
+
+def register_page(request):
+    """Page d'inscription"""
+    if request.method == 'POST':
+        form = UserRegistrationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            messages.success(request, "Compte créé avec succès ! Vous pouvez maintenant vous connecter.")
+            return redirect('login')
+        else:
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f"{field}: {error}")
+    else:
+        form = UserRegistrationForm()
+    
+    return render(request, 'inscription.html', {'form': form})
+----- 3.6 Forms -----
+from django import forms
+from django.contrib.auth.forms import UserCreationForm
+from .models import User
+
+class UserRegistrationForm(UserCreationForm):
+    """Formulaire d'inscription"""
+    
+    email = forms.EmailField(required=True)
+    first_name = forms.CharField(max_length=30, required=True)
+    last_name = forms.CharField(max_length=30, required=True)
+    phone_number = forms.CharField(max_length=20, required=True)
+    
+    class Meta:
+        model = User
+        fields = ('username', 'email', 'first_name', 'last_name', 'phone_number', 'password1', 'password2')
+    
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        user.email = self.cleaned_data['email']
+        user.first_name = self.cleaned_data['first_name']
+        user.last_name = self.cleaned_data['last_name']
+        user.phone_number = self.cleaned_data['phone_number']
+        user.role = 'user'
+        if commit:
+            user.save()
+        return user
+----- 3.7 Serializers -----
+from rest_framework import serializers
+from django.contrib.auth import get_user_model, authenticate
+from django.contrib.auth.password_validation import validate_password
+from django.core import exceptions
+from django.utils import timezone
+import logging
+
+logger = logging.getLogger('bornsafe')
+User = get_user_model()
+
+class UtilisateurSerializer(serializers.ModelSerializer):
+    """Serializer pour afficher un utilisateur"""
+    
+    nom_utilisateur = serializers.CharField(source='username', read_only=True)
+    nom = serializers.CharField(source='first_name', read_only=True)
+    prenom = serializers.CharField(source='last_name', read_only=True)
+    telephone = serializers.CharField(source='phone_number', read_only=True)
+    role_utilisateur = serializers.CharField(source='role', read_only=True)
+    est_admin = serializers.BooleanField(source='is_staff', read_only=True)
+    est_actif = serializers.BooleanField(source='is_active', read_only=True)
+
+    class Meta:
+        model = User
+        fields = [
+            'id', 'nom_utilisateur', 'email', 'nom', 'prenom', 
+            'telephone', 'role_utilisateur', 'est_admin', 'est_actif',
+            'date_joined', 'last_login'
+        ]
+
+
+class EnregistrementSerializer(serializers.ModelSerializer):
+    """Serializer pour l'enregistrement d'un utilisateur"""
+    
+    nom_utilisateur = serializers.CharField(source='username', min_length=3, max_length=50)
+    mot_de_passe = serializers.CharField(write_only=True, required=True, min_length=8)
+    confirmation_mot_de_passe = serializers.CharField(write_only=True, required=True)
+    nom = serializers.CharField(source='first_name', required=True)
+    prenom = serializers.CharField(source='last_name', required=True)
+    telephone = serializers.CharField(source='phone_number', required=True)
+    email = serializers.EmailField(required=True)
+
+    class Meta:
+        model = User
+        fields = [
+            'nom_utilisateur', 'email', 'mot_de_passe', 'confirmation_mot_de_passe',
+            'nom', 'prenom', 'telephone'
+        ]
+
+    def validate(self, data):
+        """Validation personnalisée"""
+        
+        # Vérifier que les mots de passe correspondent
+        if data.get('mot_de_passe') != data.get('confirmation_mot_de_passe'):
+            raise serializers.ValidationError({
+                'confirmation_mot_de_passe': "Les mots de passe ne correspondent pas"
+            })
+        
+        # Vérifier la force du mot de passe
+        try:
+            validate_password(data.get('mot_de_passe'))
+        except exceptions.ValidationError as e:
+            raise serializers.ValidationError({'mot_de_passe': list(e.messages)})
+        
+        # Vérifier que l'email n'est pas déjà utilisé
+        if User.objects.filter(email=data.get('email')).exists():
+            raise serializers.ValidationError({
+                'email': "Cet email est déjà utilisé"
+            })
+        
+        # Vérifier que le nom d'utilisateur n'est pas déjà utilisé
+        if User.objects.filter(username=data.get('username')).exists():
+            raise serializers.ValidationError({
+                'nom_utilisateur': "Ce nom d'utilisateur est déjà pris"
+            })
+        
+        return data
+
+    def create(self, validated_data):
+        """Création de l'utilisateur"""
+        
+        # Supprimer le champ de confirmation
+        validated_data.pop('confirmation_mot_de_passe')
+        password = validated_data.pop('mot_de_passe')
+        
+        user = User(
+            username=validated_data['username'],
+            email=validated_data['email'],
+            first_name=validated_data['first_name'],
+            last_name=validated_data['last_name'],
+            phone_number=validated_data.get('phone_number', ''),
+            role='user',
+            is_staff=False,
+            is_active=True
+        )
+        user.set_password(password)
+        user.save()
+        
+        logger.info(f"Nouvel utilisateur créé: {user.username}")
+        return user
+
+
+class AdminCreationSerializer(serializers.ModelSerializer):
+    """Serializer pour créer un admin"""
+    
+    nom_utilisateur = serializers.CharField(source='username', min_length=3, max_length=50)
+    mot_de_passe = serializers.CharField(write_only=True, required=True, min_length=8)
+    confirmation_mot_de_passe = serializers.CharField(write_only=True, required=True)
+    nom = serializers.CharField(source='first_name', required=True)
+    prenom = serializers.CharField(source='last_name', required=True)
+    telephone = serializers.CharField(source='phone_number', required=True)
+    email = serializers.EmailField(required=True)
+    role = serializers.ChoiceField(choices=User.ROLE_CHOICES, default='mairie')
+
+    class Meta:
+        model = User
+        fields = [
+            'nom_utilisateur', 'email', 'mot_de_passe', 'confirmation_mot_de_passe',
+            'nom', 'prenom', 'telephone', 'role'
+        ]
+
+    def validate(self, data):
+        """Validation similaire à EnregistrementSerializer"""
+        if data.get('mot_de_passe') != data.get('confirmation_mot_de_passe'):
+            raise serializers.ValidationError({
+                'confirmation_mot_de_passe': "Les mots de passe ne correspondent pas"
+            })
+        
+        try:
+            validate_password(data.get('mot_de_passe'))
+        except exceptions.ValidationError as e:
+            raise serializers.ValidationError({'mot_de_passe': list(e.messages)})
+        
+        return data
+
+    def create(self, validated_data):
+        """Création de l'admin"""
+        validated_data.pop('confirmation_mot_de_passe')
+        password = validated_data.pop('mot_de_passe')
+        
+        admin = User(
+            username=validated_data['username'],
+            email=validated_data['email'],
+            first_name=validated_data['first_name'],
+            last_name=validated_data['last_name'],
+            phone_number=validated_data['phone_number'],
+            role=validated_data.get('role', 'mairie'),
+            is_staff=True,
+            is_superuser=False,
+            is_active=True
+        )
+        admin.set_password(password)
+        admin.save()
+        
+        logger.info(f"Nouvel administrateur créé: {admin.username}")
+        return admin
+
+
+class LoginSerializer(serializers.Serializer):
+    """Serializer pour la connexion"""
+    
+    nom_utilisateur = serializers.CharField(required=True)
+    mot_de_passe = serializers.CharField(required=True, write_only=True)
+
+    def validate(self, data):
+        """Validation des identifiants"""
+        username = data.get('nom_utilisateur')
+        password = data.get('mot_de_passe')
+
+        if username and password:
+            user = authenticate(username=username, password=password)
+            
+            if user:
+                if not user.is_active:
+                    raise serializers.ValidationError("Ce compte est désactivé")
+                
+                if user.is_account_locked():
+                    raise serializers.ValidationError(
+                        "Compte temporairement verrouillé. Réessayez plus tard."
+                    )
+                
+                # Réinitialiser les tentatives échouées
+                user.reset_failed_login_attempts()
+                
+            else:
+                # Enregistrer la tentative échouée
+                try:
+                    user = User.objects.get(username=username)
+                    user.record_failed_login()
+                except User.DoesNotExist:
+                    pass
+                
+                raise serializers.ValidationError("Nom d'utilisateur ou mot de passe incorrect")
+        else:
+            raise serializers.ValidationError("Veuillez fournir nom d'utilisateur et mot de passe")
+
+        data['user'] = user
+        return data
+----- 3.8 Permissions -----
+from rest_framework import permissions
+
+class IsSuperAdmin(permissions.BasePermission):
+    """
+    Permission pour les super admins uniquement
+    """
+    def has_permission(self, request, view):
+        return bool(
+            request.user and 
+            request.user.is_authenticated and 
+            request.user.role == 'super_admin'
+        )
+
+class IsMairieOrSuperAdmin(permissions.BasePermission):
+    """
+    Permission pour les mairies et super admins
+    """
+    def has_permission(self, request, view):
+        return bool(
+            request.user and 
+            request.user.is_authenticated and 
+            request.user.role in ['mairie', 'super_admin']
+        )
+
+class IsOwnerOrReadOnly(permissions.BasePermission):
+    """
+    Permission pour permettre à un utilisateur de modifier uniquement ses objets
+    """
+    def has_object_permission(self, request, view, obj):
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        return obj.created_by == request.user or request.user.role == 'super_admin'
+----- 3.9 URLs API -----
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import UserViewSet
+from rest_framework_simplejwt.views import TokenRefreshView
+
+router = DefaultRouter()
+router.register(r'users', UserViewSet, basename='user')
+
+urlpatterns = [
+    path('', include(router.urls)),
+    path('register/', UserViewSet.as_view({'post': 'register'}), name='register'),
+    path('login/', UserViewSet.as_view({'post': 'login'}), name='login'),
+    path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('me/', UserViewSet.as_view({'get': 'me'}), name='me'),
+    path('update-profile/', UserViewSet.as_view({'put': 'update_profile'}), name='update-profile'),
+    path('change-password/', UserViewSet.as_view({'post': 'change_password'}), name='change-password'),
+]
+----- 3.10 URLs Templates -----
+from django.urls import path
+from django.contrib.auth import views as auth_views
+from . import views_templates as views
+
+urlpatterns = [
+    # Authentification
+    path('login/', auth_views.LoginView.as_view(
+        template_name='accounts/login.html',
+        redirect_authenticated_user=True
+    ), name='login'),
+    
+    path('logout/', auth_views.LogoutView.as_view(), name='logout'),
+    
+    # Profil
+    path('profil/', views.profile, name='profile'),
+    path('changer-mot-de-passe/', views.change_password, name='change-password'),
+    
+    # Gestion des utilisateurs (admin seulement)
+    path('utilisateurs/', views.user_list, name='user-list'),
+    path('utilisateurs/<int:pk>/', views.user_detail, name='user-detail'),
+    path('utilisateurs/<int:pk>/toggle/', views.user_toggle_active, name='user-toggle'),
+]
+----- 3.11 Admin -----
+from django.contrib import admin
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
+admin.site.register(User)
+----- 3.12 Tests -----
+from django.test import TestCase, Client
+from django.contrib.auth import get_user_model
+from rest_framework.test import APITestCase, APIClient
+from rest_framework import status
+from django.urls import reverse
+from django.core.files.uploadedfile import SimpleUploadedFile
+import json
+import tempfile
+from PIL import Image
+
+User = get_user_model()
+
+class UserModelTests(TestCase):
+    """Tests approfondis pour le modèle User"""
+    
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username='testuser',
+            email='test@test.com',
+            password='TestPass123!',
+            first_name='Test',
+            last_name='User',
+            phone_number='+243123456789'
+        )
+        
+        self.admin = User.objects.create_user(
+            username='admin',
+            email='admin@test.com',
+            password='AdminPass123!',
+            first_name='Admin',
+            last_name='User',
+            role='super_admin',
+            is_staff=True
+        )
+    
+    def test_user_creation(self):
+        """Test la création d'utilisateur"""
+        self.assertEqual(self.user.username, 'testuser')
+        self.assertEqual(self.user.email, 'test@test.com')
+        self.assertTrue(self.user.check_password('TestPass123!'))
+        self.assertEqual(self.user.role, 'user')
+        self.assertEqual(self.user.phone_number, '+243123456789')
+        self.assertFalse(self.user.is_staff)
+    
+    def test_admin_creation(self):
+        """Test la création d'admin"""
+        self.assertEqual(self.admin.role, 'super_admin')
+        self.assertTrue(self.admin.is_staff)
+    
+    def test_user_str_method(self):
+        """Test la méthode __str__"""
+        self.assertEqual(str(self.user), "testuser (Utilisateur)")
+    
+    def test_failed_login_tracking(self):
+        """Test le suivi des tentatives échouées"""
+        # Test initial
+        self.assertEqual(self.user.failed_login_attempts, 0)
+        self.assertFalse(self.user.is_account_locked())
+        
+        # 3 tentatives échouées
+        for i in range(3):
+            self.user.record_failed_login()
+        self.assertEqual(self.user.failed_login_attempts, 3)
+        self.assertFalse(self.user.is_account_locked())
+        
+        # 5 tentatives échouées (verrouillage)
+        for i in range(2):
+            self.user.record_failed_login()
+        self.assertEqual(self.user.failed_login_attempts, 5)
+        self.assertTrue(self.user.is_account_locked())
+        
+        # Test réinitialisation
+        self.user.reset_failed_login_attempts()
+        self.assertEqual(self.user.failed_login_attempts, 0)
+        self.assertFalse(self.user.is_account_locked())
+    
+    def test_unique_constraints(self):
+        """Test les contraintes d'unicité"""
+        with self.assertRaises(Exception):
+            User.objects.create_user(
+                username='testuser',  # Déjà existant
+                email='autre@test.com',
+                password='password123'
+            )
+        
+        with self.assertRaises(Exception):
+            User.objects.create_user(
+                username='autreuser',
+                email='test@test.com',  # Déjà existant
+                password='password123'
+            )
+
+
+class UserAPITests(APITestCase):
+    """Tests API pour User"""
+    
+    def setUp(self):
+        self.client = APIClient()
+        self.register_url = reverse('register')
+        self.login_url = reverse('login')
+        self.me_url = reverse('me')
+        self.change_password_url = reverse('change-password')
+        
+        # Données valides
+        self.valid_user_data = {
+            'nom_utilisateur': 'nouvelutilisateur',
+            'email': 'nouveau@test.com',
+            'mot_de_passe': 'TestPass123!',
+            'confirmation_mot_de_passe': 'TestPass123!',
+            'nom': 'Nouveau',
+            'prenom': 'Utilisateur',
+            'telephone': '+243123456789'
+        }
+    
+    def test_1_registration_success(self):
+        """Test 1: Enregistrement réussi"""
+        response = self.client.post(self.register_url, self.valid_user_data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertIn('access', response.data)
+        self.assertIn('refresh', response.data)
+        self.assertEqual(response.data['user']['email'], self.valid_user_data['email'])
+        
+        # Vérifier que l'utilisateur est bien créé
+        user = User.objects.get(username='nouvelutilisateur')
+        self.assertEqual(user.first_name, 'Nouveau')
+        self.assertEqual(user.role, 'user')
+    
+    def test_2_registration_password_mismatch(self):
+        """Test 2: Mots de passe différents"""
+        data = self.valid_user_data.copy()
+        data['confirmation_mot_de_passe'] = 'wrongpassword'
+        response = self.client.post(self.register_url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('confirmation_mot_de_passe', response.data)
+    
+    def test_3_registration_weak_password(self):
+        """Test 3: Mot de passe trop faible"""
+        data = self.valid_user_data.copy()
+        data['mot_de_passe'] = '123'
+        data['confirmation_mot_de_passe'] = '123'
+        response = self.client.post(self.register_url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('mot_de_passe', response.data)
+    
+    def test_4_registration_duplicate_username(self):
+        """Test 4: Nom d'utilisateur déjà pris"""
+        # Premier enregistrement
+        self.client.post(self.register_url, self.valid_user_data, format='json')
+        
+        # Deuxième avec même username
+        data = self.valid_user_data.copy()
+        data['email'] = 'autre@test.com'
+        response = self.client.post(self.register_url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('nom_utilisateur', response.data)
+    
+    def test_5_login_success(self):
+        """Test 5: Connexion réussie"""
+        # Créer utilisateur
+        self.client.post(self.register_url, self.valid_user_data, format='json')
+        
+        # Login
+        login_data = {
+            'nom_utilisateur': 'nouvelutilisateur',
+            'mot_de_passe': 'TestPass123!'
+        }
+        response = self.client.post(self.login_url, login_data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn('access', response.data)
+        self.assertIn('refresh', response.data)
+        self.assertEqual(response.data['user']['nom_utilisateur'], 'nouvelutilisateur')
+    
+    def test_6_login_wrong_password(self):
+        """Test 6: Mauvais mot de passe"""
+        # Créer utilisateur
+        self.client.post(self.register_url, self.valid_user_data, format='json')
+        
+        # Mauvais mot de passe
+        login_data = {
+            'nom_utilisateur': 'nouvelutilisateur',
+            'mot_de_passe': 'wrongpass'
+        }
+        response = self.client.post(self.login_url, login_data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+    
+    def test_7_login_account_locked(self):
+        """Test 7: Compte verrouillé après 5 tentatives"""
+        # Créer utilisateur
+        self.client.post(self.register_url, self.valid_user_data, format='json')
+        
+        # 5 tentatives échouées
+        login_data = {
+            'nom_utilisateur': 'nouvelutilisateur',
+            'mot_de_passe': 'wrongpass'
+        }
+        
+        for i in range(5):
+            response = self.client.post(self.login_url, login_data, format='json')
+            if i < 4:
+                self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        
+        # 6ème tentative - compte verrouillé
+        response = self.client.post(self.login_url, login_data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('verrouillé', str(response.data).lower())
+    
+    def test_8_authenticated_endpoint(self):
+        """Test 8: Accès endpoint protégé"""
+        # Créer et connecter
+        reg_response = self.client.post(self.register_url, self.valid_user_data, format='json')
+        token = reg_response.data['access']
+        
+        # Accéder à /me/
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
+        response = self.client.get(self.me_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['email'], self.valid_user_data['email'])
+    
+    def test_9_change_password(self):
+        """Test 9: Changement de mot de passe"""
+        # Créer et connecter
+        reg_response = self.client.post(self.register_url, self.valid_user_data, format='json')
+        token = reg_response.data['access']
+        
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
+        
+        # Changer mot de passe
+        password_data = {
+            'old_password': 'TestPass123!',
+            'new_password': 'NewPass123!',
+            'confirm_password': 'NewPass123!'
+        }
+        response = self.client.post(self.change_password_url, password_data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        # Tester nouveau mot de passe
+        self.client.credentials()  # Enlever token
+        login_data = {
+            'nom_utilisateur': 'nouvelutilisateur',
+            'mot_de_passe': 'NewPass123!'
+        }
+        response = self.client.post(self.login_url, login_data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+    
+    def test_10_invalid_token(self):
+        """Test 10: Token invalide"""
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer invalidtoken123')
+        response = self.client.get(self.me_url)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
+class UserPermissionsTests(APITestCase):
+    """Tests des permissions"""
+    
+    def setUp(self):
+        self.client = APIClient()
+        
+        # Créer différents types d'utilisateurs
+        self.user = User.objects.create_user(
+            username='normaluser',
+            email='user@test.com',
+            password='UserPass123!',
+            role='user'
+        )
+        
+        self.mairie = User.objects.create_user(
+            username='mairie',
+            email='mairie@test.com',
+            password='MairiePass123!',
+            role='mairie',
+            is_staff=True
+        )
+        
+        self.super_admin = User.objects.create_user(
+            username='superadmin',
+            email='super@test.com',
+            password='SuperPass123!',
+            role='super_admin',
+            is_staff=True,
+            is_superuser=True
+        )
+    
+    def test_user_cannot_create_admin(self):
+        """Test: User normal ne peut pas créer d'admin"""
+        # Login user normal
+        login_data = {'nom_utilisateur': 'normaluser', 'mot_de_passe': 'UserPass123!'}
+        response = self.client.post(reverse('login'), login_data, format='json')
+        token = response.data['access']
+        
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
+        
+        # Tenter création admin
+        admin_data = {
+            'nom_utilisateur': 'newadmin',
+            'email': 'newadmin@test.com',
+            'mot_de_passe': 'AdminPass123!',
+            'confirmation_mot_de_passe': 'AdminPass123!',
+            'nom': 'New',
+            'prenom': 'Admin',
+            'telephone': '+243123456789',
+            'role': 'mairie'
+        }
+        response = self.client.post(reverse('create-admin'), admin_data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+    
+    def test_mairie_cannot_create_admin(self):
+        """Test: Mairie ne peut pas créer d'admin"""
+        # Login mairie
+        login_data = {'nom_utilisateur': 'mairie', 'mot_de_passe': 'MairiePass123!'}
+        response = self.client.post(reverse('login'), login_data, format='json')
+        token = response.data['access']
+        
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
+        
+        # Tenter création admin
+        admin_data = {
+            'nom_utilisateur': 'newadmin',
+            'email': 'newadmin@test.com',
+            'mot_de_passe': 'AdminPass123!',
+            'confirmation_mot_de_passe': 'AdminPass123!',
+            'nom': 'New',
+            'prenom': 'Admin',
+            'telephone': '+243123456789',
+            'role': 'mairie'
+        }
+        response = self.client.post(reverse('create-admin'), admin_data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+    
+    def test_super_admin_can_create_admin(self):
+        """Test: Super admin peut créer admin"""
+        # Login super admin
+        login_data = {'nom_utilisateur': 'superadmin', 'mot_de_passe': 'SuperPass123!'}
+        response = self.client.post(reverse('login'), login_data, format='json')
+        token = response.data['access']
+        
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
+        
+        # Créer admin
+        admin_data = {
+            'nom_utilisateur': 'newadmin',
+            'email': 'newadmin@test.com',
+            'mot_de_passe': 'AdminPass123!',
+            'confirmation_mot_de_passe': 'AdminPass123!',
+            'nom': 'New',
+            'prenom': 'Admin',
+            'telephone': '+243123456789',
+            'role': 'mairie'
+        }
+        response = self.client.post(reverse('create-admin'), admin_data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+
+========== 4. APPLICATION ACTES ==========
+----- 4.1 Modèles -----
+from django.db import models
+from django.utils import timezone
+from django.core.validators import RegexValidator, MinLengthValidator
+import uuid
+from provinces.models import Province
+from django.conf import settings
+import os
+
+def acte_pdf_path(instance, filename):
+    """Génère un chemin unique pour le fichier PDF"""
+    ext = filename.split('.')[-1]
+    filename = f"{instance.numero_acte}_{timezone.now().strftime('%Y%m%d_%H%M%S')}.{ext}"
+    return os.path.join('actes_pdfs', filename)
+
+def qr_code_path(instance, filename):
+    """Génère un chemin unique pour le QR code"""
+    ext = filename.split('.')[-1]
+    filename = f"qr_{instance.numero_acte}.{ext}"
+    return os.path.join('qr_codes', filename)
+
+class ActeNaissance(models.Model):
+    """Modèle pour les actes de naissance"""
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    numero_acte = models.CharField(
+        max_length=100, 
+        unique=True,
+        db_index=True,
+        validators=[MinLengthValidator(5)],
+        help_text="Numéro unique de l'acte de naissance"
+    )
+    
+    nom = models.CharField(max_length=100, db_index=True)
+    prenom = models.CharField(max_length=100)
+    date_naissance = models.DateField(db_index=True)
+    lieu_naissance = models.CharField(max_length=100)
+    
+    province = models.ForeignKey(
+        Province, 
+        on_delete=models.PROTECT,  # PROTECT au lieu de CASCADE
+        related_name='actes_naissance'
+    )
+    
+    # Fichiers
+    fichier_pdf = models.FileField(
+        upload_to=acte_pdf_path, 
+        null=True, 
+        blank=True
+    )
+    
+    qr_code = models.ImageField(
+        upload_to=qr_code_path, 
+        null=True, 
+        blank=True
+    )
+    
+    # Métadonnées
+    created_at = models.DateTimeField(default=timezone.now, db_index=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, 
+        related_name='created_actes', 
+        on_delete=models.SET_NULL, 
+        null=True
+    )
+    
+    modified_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, 
+        related_name='modified_actes', 
+        on_delete=models.SET_NULL, 
+        null=True
+    )
+    
+    # Statut
+    STATUS_CHOICES = [
+        ('brouillon', 'Brouillon'),
+        ('valide', 'Validé'),
+        ('annule', 'Annulé'),
+    ]
+    
+    status = models.CharField(
+        max_length=20, 
+        choices=STATUS_CHOICES, 
+        default='brouillon',
+        db_index=True
+    )
+    
+    class Meta:
+        indexes = [
+            models.Index(fields=['numero_acte', 'nom']),
+            models.Index(fields=['province', 'date_naissance']),
+        ]
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.numero_acte} - {self.nom} {self.prenom}"
+    
+    def save(self, *args, **kwargs):
+        """Surcharge pour mettre à jour updated_at"""
+        if not self._state.adding:
+            self.updated_at = timezone.now()
+        super().save(*args, **kwargs)
+    
+    def get_qr_data(self):
+        """Génère les données pour le QR code"""
+        return f"BornSafe|{self.numero_acte}|{self.nom}|{self.prenom}|{self.date_naissance}"
+----- 4.2 Vues API -----
+from rest_framework import viewsets, filters, status
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from django_filters.rest_framework import DjangoFilterBackend
+from django.core.cache import cache
+from django.utils import timezone
+from django.db import transaction
+from .models import ActeNaissance
+from .serializers import (
+    ActeNaissanceListSerializer, 
+    ActeNaissanceDetailSerializer,
+    ActeNaissanceCreateUpdateSerializer,
+    ActeNaissanceVerifySerializer
+)
+from accounts.permissions import IsMairieOrSuperAdmin
+from .utils import generate_qr_code, generate_pdf
+import logging
+
+logger = logging.getLogger('bornsafe')
+
+class ActeNaissanceViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet pour gérer les actes de naissance
+    """
+    queryset = ActeNaissance.objects.select_related(
+        'province', 'created_by', 'modified_by'
+    ).all()
+    
+    filter_backends = [
+        DjangoFilterBackend, 
+        filters.SearchFilter, 
+        filters.OrderingFilter
+    ]
+    
+    filterset_fields = ['province', 'status', 'date_naissance']
+    search_fields = ['numero_acte', 'nom', 'prenom', 'lieu_naissance']
+    ordering_fields = ['created_at', 'date_naissance', 'nom']
+    
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return ActeNaissanceListSerializer
+        elif self.action in ['create', 'update', 'partial_update']:
+            return ActeNaissanceCreateUpdateSerializer
+        elif self.action == 'verify':
+            return ActeNaissanceVerifySerializer
+        return ActeNaissanceDetailSerializer
+
+    def get_permissions(self):
+        if self.action in ['create', 'update', 'partial_update', 'destroy', 'validate']:
+            permission_classes = [IsMairieOrSuperAdmin]
+        else:
+            permission_classes = [IsAuthenticated]
+        return [permission() for permission in permission_classes]
+
+    def get_queryset(self):
+        """Optimisation des requêtes"""
+        queryset = super().get_queryset()
+        
+        # Filtrage par rôle
+        user = self.request.user
+        if user.role == 'mairie':
+            # Les mairies voient seulement les actes qu'elles ont créés
+            queryset = queryset.filter(created_by=user)
+        elif user.role == 'user':
+            # Les utilisateurs voient seulement les actes validés
+            queryset = queryset.filter(status='valide')
+        
+        return queryset
+
+    @transaction.atomic
+    def perform_create(self, serializer):
+        """Création avec utilisateur"""
+        instance = serializer.save(
+            created_by=self.request.user,
+            modified_by=self.request.user
+        )
+        
+        # Générer le PDF et QR code en arrière-plan
+        self._generate_documents(instance)
+        
+        logger.info(f"Acte créé: {instance.numero_acte} par {self.request.user.username}")
+
+    @transaction.atomic
+    def perform_update(self, serializer):
+        """Mise à jour avec utilisateur"""
+        instance = serializer.save(modified_by=self.request.user)
+        
+        # Invalider le cache si nécessaire
+        cache.delete(f'acte_{instance.id}')
+        
+        logger.info(f"Acte mis à jour: {instance.numero_acte} par {self.request.user.username}")
+
+    def _generate_documents(self, instance):
+        """Génère les documents (PDF et QR code)"""
+        try:
+            # Générer le QR code
+            generate_qr_code(instance)
+            
+            # Générer le PDF
+            generate_pdf(instance)
+            
+            instance.save(update_fields=['qr_code', 'fichier_pdf'])
+        except Exception as e:
+            logger.error(f"Erreur génération documents pour {instance.numero_acte}: {str(e)}")
+
+    @action(detail=False, methods=['post'])
+    def verify(self, request):
+        """Vérifier un acte de naissance"""
+        serializer = ActeNaissanceVerifySerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        acte = serializer.validated_data['acte']
+        
+        # Mettre en cache pour les prochaines vérifications
+        cache.set(f'verified_{acte.numero_acte}', True, timeout=3600)
+        
+        logger.info(f"Acte vérifié: {acte.numero_acte} par {request.user.username}")
+        
+        return Response({
+            'status': 'conforme',
+            'message': 'Acte de naissance authentique',
+            'acte': ActeNaissanceDetailSerializer(acte).data
+        })
+
+    @action(detail=True, methods=['post'])
+    def validate(self, request, pk=None):
+        """Valider un acte (le passer du statut brouillon à validé)"""
+        acte = self.get_object()
+        
+        if acte.status != 'brouillon':
+            return Response(
+                {'error': "Cet acte ne peut pas être validé"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        acte.status = 'valide'
+        acte.modified_by = request.user
+        acte.save()
+        
+        logger.info(f"Acte validé: {acte.numero_acte} par {request.user.username}")
+        
+        return Response({
+            'message': 'Acte validé avec succès',
+            'acte': ActeNaissanceDetailSerializer(acte).data
+        })
+
+    @action(detail=True, methods=['get'])
+    def download_pdf(self, request, pk=None):
+        """Télécharger le PDF d'un acte"""
+        acte = self.get_object()
+        
+        if not acte.fichier_pdf:
+            return Response(
+                {'error': "PDF non disponible"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        logger.info(f"PDF téléchargé: {acte.numero_acte} par {request.user.username}")
+        
+        from django.http import FileResponse
+        return FileResponse(
+            acte.fichier_pdf, 
+            as_attachment=True,
+            filename=f"acte_{acte.numero_acte}.pdf"
+        )
+
+    @action(detail=True, methods=['get'])
+    def qr_code(self, request, pk=None):
+        """Récupérer le QR code d'un acte"""
+        acte = self.get_object()
+        
+        if not acte.qr_code:
+            return Response(
+                {'error': "QR code non disponible"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        from django.http import FileResponse
+        return FileResponse(acte.qr_code, content_type='image/png')
+----- 4.3 Vues Templates -----
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.core.paginator import Paginator
+from django.db.models import Q, Count
+from django.utils import timezone
+from .models import ActeNaissance
+from provinces.models import Province
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
+
+@login_required
+def dashboard(request):
+    """Tableau de bord principal"""
+    
+    # Statistiques générales
+    total_actes = ActeNaissance.objects.count()
+    actes_valides = ActeNaissance.objects.filter(status='valide').count()
+    actes_attente = ActeNaissance.objects.filter(status='brouillon').count()
+    total_users = User.objects.count()
+    users_actifs = User.objects.filter(is_active=True).count()
+    
+    # Actes récents
+    actes_recents = ActeNaissance.objects.select_related('province').order_by('-created_at')[:5]
+    
+    # Statistiques par province
+    stats_provinces = Province.objects.annotate(
+        total=Count('actes_naissance'),
+        valides=Count('actes_naissance', filter=Q(actes_naissance__status='valide')),
+        brouillons=Count('actes_naissance', filter=Q(actes_naissance__status='brouillon')),
+        annules=Count('actes_naissance', filter=Q(actes_naissance__status='annule'))
+    )
+    
+    context = {
+        'total_actes': total_actes,
+        'actes_valides': actes_valides,
+        'actes_attente': actes_attente,
+        'total_users': total_users,
+        'users_actifs': users_actifs,
+        'actes_recents': actes_recents,
+        'stats_provinces': stats_provinces,
+        'taux_validation': int((actes_valides / total_actes * 100)) if total_actes > 0 else 0,
+        'current_date': timezone.now(),
+    }
+    return render(request, 'dashboard.html', context)
+
+@login_required
+def acte_list(request):
+    """Liste des actes"""
+    queryset = ActeNaissance.objects.select_related('province', 'created_by').all()
+    
+    # Filtrage par rôle
+    if request.user.role == 'mairie':
+        queryset = queryset.filter(created_by=request.user)
+    elif request.user.role == 'user':
+        queryset = queryset.filter(status='valide')
+    
+    # Recherche
+    search_query = request.GET.get('search', '')
+    if search_query:
+        queryset = queryset.filter(
+            Q(numero_acte__icontains=search_query) |
+            Q(nom__icontains=search_query) |
+            Q(prenom__icontains=search_query)
+        )
+    
+    # Filtre province
+    province_id = request.GET.get('province')
+    if province_id:
+        queryset = queryset.filter(province_id=province_id)
+    
+    # Filtre statut
+    status = request.GET.get('status')
+    if status:
+        queryset = queryset.filter(status=status)
+    
+    # Pagination
+    paginator = Paginator(queryset.order_by('-created_at'), 20)
+    page_number = request.GET.get('page')
+    actes = paginator.get_page(page_number)
+    
+    context = {
+        'actes': actes,
+        'provinces': Province.objects.all(),
+        'is_paginated': actes.has_other_pages(),
+        'page_obj': actes,
+        'paginator': paginator,
+    }
+    return render(request, 'actes/liste.html', context)
+
+@login_required
+def acte_detail(request, pk):
+    """Détail d'un acte"""
+    acte = get_object_or_404(ActeNaissance, pk=pk)
+    
+    # Vérification des permissions
+    if request.user.role == 'user' and acte.status != 'valide':
+        messages.error(request, "Vous n'avez pas accès à cet acte")
+        return redirect('acte-list')
+    
+    if request.user.role == 'mairie' and acte.created_by != request.user:
+        messages.error(request, "Vous n'êtes pas autorisé à voir cet acte")
+        return redirect('acte-list')
+    
+    context = {'acte': acte}
+    return render(request, 'actes/detail.html', context)
+
+@login_required
+def acte_create(request):
+    """Création d'un acte"""
+    if request.user.role not in ['mairie', 'super_admin']:
+        messages.error(request, "Vous n'êtes pas autorisé à créer des actes")
+        return redirect('acte-list')
+    
+    from .forms import ActeNaissanceForm
+    
+    if request.method == 'POST':
+        form = ActeNaissanceForm(request.POST, request.FILES)
+        if form.is_valid():
+            acte = form.save(commit=False)
+            acte.created_by = request.user
+            acte.modified_by = request.user
+            acte.save()
+            messages.success(request, f"Acte {acte.numero_acte} créé avec succès")
+            return redirect('acte-detail', pk=acte.id)
+    else:
+        form = ActeNaissanceForm()
+    
+    context = {'form': form, 'acte': None}
+    return render(request, 'actes/formulaire.html', context)
+
+@login_required
+def acte_update(request, pk):
+    """Modification d'un acte"""
+    acte = get_object_or_404(ActeNaissance, pk=pk)
+    
+    if request.user.role not in ['mairie', 'super_admin']:
+        messages.error(request, "Vous n'êtes pas autorisé à modifier des actes")
+        return redirect('acte-list')
+    
+    if request.user.role == 'mairie' and acte.created_by != request.user:
+        messages.error(request, "Vous ne pouvez modifier que vos propres actes")
+        return redirect('acte-list')
+    
+    from .forms import ActeNaissanceForm
+    
+    if request.method == 'POST':
+        form = ActeNaissanceForm(request.POST, request.FILES, instance=acte)
+        if form.is_valid():
+            acte = form.save(commit=False)
+            acte.modified_by = request.user
+            acte.save()
+            messages.success(request, f"Acte {acte.numero_acte} modifié avec succès")
+            return redirect('acte-detail', pk=acte.id)
+    else:
+        form = ActeNaissanceForm(instance=acte)
+    
+    context = {'form': form, 'acte': acte}
+    return render(request, 'actes/formulaire.html', context)
+
+@login_required
+def acte_validate(request, pk):
+    """Validation d'un acte"""
+    if request.method == 'POST':
+        acte = get_object_or_404(ActeNaissance, pk=pk)
+        
+        if request.user.role not in ['mairie', 'super_admin']:
+            messages.error(request, "Vous n'êtes pas autorisé à valider des actes")
+            return redirect('acte-list')
+        
+        if acte.status != 'brouillon':
+            messages.error(request, "Cet acte ne peut pas être validé")
+            return redirect('acte-detail', pk=acte.id)
+        
+        acte.status = 'valide'
+        acte.modified_by = request.user
+        acte.save()
+        
+        messages.success(request, f"Acte {acte.numero_acte} validé avec succès")
+    
+    return redirect('acte-detail', pk=pk)
+
+@login_required
+def acte_download_pdf(request, pk):
+    """Télécharger le PDF d'un acte"""
+    acte = get_object_or_404(ActeNaissance, pk=pk)
+    
+    if not acte.fichier_pdf:
+        messages.error(request, "PDF non disponible")
+        return redirect('acte-detail', pk=acte.id)
+    
+    from django.http import FileResponse
+    return FileResponse(
+        acte.fichier_pdf, 
+        as_attachment=True,
+        filename=f"acte_{acte.numero_acte}.pdf"
+    )
+----- 4.4 Forms -----
+from django import forms
+from .models import ActeNaissance
+from provinces.models import Province
+
+class ActeNaissanceForm(forms.ModelForm):
+    """Formulaire pour les actes de naissance"""
+    
+    class Meta:
+        model = ActeNaissance
+        fields = [
+            'numero_acte', 'nom', 'prenom', 'date_naissance',
+            'lieu_naissance', 'province', 'fichier_pdf', 'status'
+        ]
+        widgets = {
+            'numero_acte': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Ex: ACT-2024-001'}),
+            'nom': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Nom de famille'}),
+            'prenom': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Prénom(s)'}),
+            'date_naissance': forms.DateInput(attrs={'class': 'form-input', 'type': 'date'}),
+            'lieu_naissance': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Ville/village de naissance'}),
+            'province': forms.Select(attrs={'class': 'form-select'}),
+            'fichier_pdf': forms.FileInput(attrs={'class': 'form-input'}),
+            'status': forms.Select(attrs={'class': 'form-select'}),
+        }
+        help_texts = {
+            'numero_acte': 'Format recommandé: ACT-ANNÉE-NUMÉRO (ex: ACT-2024-001)',
+        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Rendre certains champs optionnels selon le contexte
+        self.fields['fichier_pdf'].required = False
+        self.fields['status'].required = False
+        
+        # Ordonner les provinces
+        self.fields['province'].queryset = Province.objects.order_by('name')
+    
+    def clean_numero_acte(self):
+        """Validation personnalisée du numéro d'acte"""
+        numero = self.cleaned_data['numero_acte']
+        
+        # Vérifier l'unicité (sauf si c'est le même acte)
+        instance = getattr(self, 'instance', None)
+        if instance and instance.pk:
+            if ActeNaissance.objects.filter(numero_acte=numero).exclude(pk=instance.pk).exists():
+                raise forms.ValidationError("Ce numéro d'acte existe déjà")
+        else:
+            if ActeNaissance.objects.filter(numero_acte=numero).exists():
+                raise forms.ValidationError("Ce numéro d'acte existe déjà")
+        
+        return numero
+    
+    def clean_date_naissance(self):
+        """Validation de la date de naissance"""
+        date_naissance = self.cleaned_data['date_naissance']
+        from django.utils import timezone
+        from datetime import date
+        
+        if date_naissance > date.today():
+            raise forms.ValidationError("La date de naissance ne peut pas être dans le futur")
+        
+        return date_naissance
+
+
+class ActeRechercheForm(forms.Form):
+    """Formulaire de recherche d'actes"""
+    numero_acte = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Numéro d\'acte'})
+    )
+    nom = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Nom'})
+    )
+    prenom = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Prénom'})
+    )
+    province = forms.ModelChoiceField(
+        queryset=Province.objects.all(),
+        required=False,
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+    status = forms.ChoiceField(
+        choices=[('', 'Tous')] + ActeNaissance.STATUS_CHOICES,
+        required=False,
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+    date_debut = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={'class': 'form-input', 'type': 'date'})
+    )
+    date_fin = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={'class': 'form-input', 'type': 'date'})
+    )
+----- 4.5 Serializers -----
+from rest_framework import serializers
+from .models import ActeNaissance
+from provinces.serializers import ProvinceSerializer
+from provinces.models import Province
+from django.utils import timezone
+
+class ActeNaissanceListSerializer(serializers.ModelSerializer):
+    """Serializer pour la liste des actes (champs réduits)"""
+    
+    province_nom = serializers.CharField(source='province.name', read_only=True)
+    created_by_username = serializers.CharField(source='created_by.username', read_only=True)
+    
+    class Meta:
+        model = ActeNaissance
+        fields = [
+            'id', 'numero_acte', 'nom', 'prenom', 
+            'date_naissance', 'province_nom', 'status',
+            'created_at', 'created_by_username'
+        ]
+
+
+class ActeNaissanceDetailSerializer(serializers.ModelSerializer):
+    """Serializer pour les détails d'un acte"""
+    
+    province = ProvinceSerializer(read_only=True)
+    province_id = serializers.PrimaryKeyRelatedField(
+        queryset=Province.objects.all(), 
+        source='province', 
+        write_only=True
+    )
+    
+    created_by_username = serializers.CharField(source='created_by.username', read_only=True)
+    modified_by_username = serializers.CharField(source='modified_by.username', read_only=True)
+    
+    class Meta:
+        model = ActeNaissance
+        fields = [
+            'id', 'numero_acte', 'nom', 'prenom', 'date_naissance',
+            'lieu_naissance', 'province', 'province_id', 'fichier_pdf',
+            'qr_code', 'status', 'created_at', 'updated_at',
+            'created_by_username', 'modified_by_username'
+        ]
+        read_only_fields = ['fichier_pdf', 'qr_code', 'created_at', 'updated_at']
+
+
+class ActeNaissanceCreateUpdateSerializer(serializers.ModelSerializer):
+    """Serializer pour la création/mise à jour"""
+    
+    class Meta:
+        model = ActeNaissance
+        fields = [
+            'numero_acte', 'nom', 'prenom', 'date_naissance',
+            'lieu_naissance', 'province', 'status'
+        ]
+    
+    def validate_numero_acte(self, value):
+        """Validation du numéro d'acte"""
+        if ActeNaissance.objects.filter(numero_acte=value).exists():
+            raise serializers.ValidationError("Ce numéro d'acte existe déjà")
+        return value
+    
+    def validate_date_naissance(self, value):
+        """Validation de la date de naissance"""
+        if value > timezone.now().date():
+            raise serializers.ValidationError("La date de naissance ne peut pas être dans le futur")
+        return value
+
+
+class ActeNaissanceVerifySerializer(serializers.Serializer):
+    """Serializer pour la vérification d'un acte"""
+    
+    numero_acte = serializers.CharField(required=True)
+    nom = serializers.CharField(required=True)
+    prenom = serializers.CharField(required=True)
+    date_naissance = serializers.DateField(required=True)
+    lieu_naissance = serializers.CharField(required=True)
+    province_id = serializers.IntegerField(required=True)
+    
+    def validate(self, data):
+        """Vérification de l'existence de l'acte"""
+        acte = ActeNaissance.objects.filter(
+            numero_acte=data['numero_acte'],
+            nom__iexact=data['nom'],
+            prenom__iexact=data['prenom'],
+            date_naissance=data['date_naissance'],
+            lieu_naissance__iexact=data['lieu_naissance'],
+            province_id=data['province_id']
+        ).first()
+        
+        if not acte:
+            raise serializers.ValidationError("Acte non trouvé")
+        
+        if acte.status != 'valide':
+            raise serializers.ValidationError("Cet acte n'est pas validé")
+        
+        data['acte'] = acte
+        return data
+----- 4.6 Utils -----
+import qrcode
+from io import BytesIO
+from django.core.files import File
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.units import cm
+import logging
+
+logger = logging.getLogger('bornsafe')
+
+def generate_qr_code(instance):
+    """Génère un QR code pour un acte"""
+    try:
+        qr = qrcode.QRCode(
+            version=1,
+            box_size=10,
+            border=5,
+            error_correction=qrcode.constants.ERROR_CORRECT_H
+        )
+        
+        # Données structurées
+        qr_data = instance.get_qr_data()
+        qr.add_data(qr_data)
+        qr.make(fit=True)
+        
+        # Créer l'image
+        img = qr.make_image(fill_color="black", back_color="white")
+        
+        # Sauvegarder
+        buffer = BytesIO()
+        img.save(buffer, format='PNG')
+        
+        instance.qr_code.save(
+            f"qr_{instance.numero_acte}.png", 
+            File(buffer), 
+            save=False
+        )
+        
+        logger.debug(f"QR code généré pour {instance.numero_acte}")
+        
+    except Exception as e:
+        logger.error(f"Erreur génération QR code {instance.numero_acte}: {str(e)}")
+        raise
+
+def generate_pdf(instance):
+    """Génère un PDF pour un acte"""
+    try:
+        buffer = BytesIO()
+        
+        # Créer le document PDF
+        c = canvas.Canvas(buffer, pagesize=A4)
+        width, height = A4
+        
+        # Titre
+        c.setFont("Helvetica-Bold", 16)
+        c.drawString(2*cm, height - 2*cm, "RÉPUBLIQUE GABONAISE")
+        c.setFont("Helvetica-Bold", 14)
+        c.drawString(2*cm, height - 3*cm, "ACTE DE NAISSANCE")
+        
+        # Ligne de séparation
+        c.line(2*cm, height - 3.5*cm, width - 2*cm, height - 3.5*cm)
+        
+        # Informations
+        y = height - 5*cm
+        line_height = 0.8*cm
+        
+        c.setFont("Helvetica", 12)
+        
+        # Numéro d'acte
+        c.drawString(2*cm, y, f"Numéro d'acte : {instance.numero_acte}")
+        y -= line_height
+        
+        # Nom et prénom
+        c.drawString(2*cm, y, f"Nom : {instance.nom}")
+        y -= line_height
+        c.drawString(2*cm, y, f"Prénom : {instance.prenom}")
+        y -= line_height
+        
+        # Date et lieu de naissance
+        date_str = instance.date_naissance.strftime("%d/%m/%Y")
+        c.drawString(2*cm, y, f"Date de naissance : {date_str}")
+        y -= line_height
+        c.drawString(2*cm, y, f"Lieu de naissance : {instance.lieu_naissance}")
+        y -= line_height
+        
+        # Province
+        c.drawString(2*cm, y, f"Province : {instance.province.name}")
+        y -= line_height
+        
+        # Date d'établissement
+        created_str = instance.created_at.strftime("%d/%m/%Y")
+        c.drawString(2*cm, y, f"Date d'établissement : {created_str}")
+        y -= line_height
+        
+        # QR Code note
+        c.setFont("Helvetica-Oblique", 10)
+        c.drawString(2*cm, 2*cm, "Ce document est authentifié par QR code")
+        
+        # Finaliser
+        c.showPage()
+        c.save()
+        
+        # Sauvegarder
+        buffer.seek(0)
+        instance.fichier_pdf.save(
+            f"acte_{instance.numero_acte}.pdf", 
+            File(buffer), 
+            save=False
+        )
+        
+        logger.debug(f"PDF généré pour {instance.numero_acte}")
+        
+    except Exception as e:
+        logger.error(f"Erreur génération PDF {instance.numero_acte}: {str(e)}")
+        raise
+----- 4.7 Signals -----
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from .models import ActeNaissance
+from .utils import generate_qr_code, generate_pdf
+import logging
+
+logger = logging.getLogger('bornsafe')
+
+@receiver(post_save, sender=ActeNaissance)
+def generate_documents(sender, instance, created, **kwargs):
+    """Génère les documents après la création d'un acte"""
+    if created and not instance.qr_code:
+        try:
+            # Générer le QR code
+            generate_qr_code(instance)
+            
+            # Générer le PDF
+            generate_pdf(instance)
+            
+            # Sauvegarder sans rappeler le signal
+            instance.save(update_fields=['qr_code', 'fichier_pdf'])
+            logger.info(f"Documents générés pour l'acte {instance.numero_acte}")
+        except Exception as e:
+            logger.error(f"Erreur génération documents pour {instance.numero_acte}: {str(e)}")
+----- 4.8 URLs API -----
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import ActeNaissanceViewSet
+
+router = DefaultRouter()
+router.register(r'', ActeNaissanceViewSet, basename='acte')
+
+urlpatterns = [
+    path('', include(router.urls)),
+]
+----- 4.9 URLs Templates -----
+from django.urls import path
+from . import views_templates as views
+
+urlpatterns = [
+    # Pages principales
+    path('', views.acte_list, name='acte-list'),
+    path('<uuid:pk>/', views.acte_detail, name='acte-detail'),
+    path('nouveau/', views.acte_create, name='acte-create'),
+    path('<uuid:pk>/modifier/', views.acte_update, name='acte-edit'),
+    path('<uuid:pk>/valider/', views.acte_validate, name='acte-validate'),
+    
+    # Actions
+    path('<uuid:pk>/pdf/', views.acte_download_pdf, name='acte-download-pdf'),
+]
+----- 4.10 Admin -----
+from django.contrib import admin
+from .models import ActeNaissance
+
+admin.site.register(ActeNaissance)
+----- 4.11 Tests -----
+from django.test import TestCase
+from rest_framework.test import APITestCase, APIClient
+from rest_framework import status
+from django.urls import reverse
+from django.utils import timezone
+from datetime import date, timedelta
+from .models import ActeNaissance
+from provinces.models import Province
+from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
+import tempfile
+from PIL import Image
+import io
+
+User = get_user_model()
+
+class ActeNaissanceModelTests(TestCase):
+    """Tests pour le modèle ActeNaissance"""
+    
+    def setUp(self):
+        self.province = Province.objects.create(name='Kinshasa')
+        self.user = User.objects.create_user(
+            username='testuser',
+            password='testpass123'
+        )
+        
+        self.acte = ActeNaissance.objects.create(
+            numero_acte='ACTE001',
+            nom='Dupont',
+            prenom='Jean',
+            date_naissance=date(1990, 1, 1),
+            lieu_naissance='Kinshasa',
+            province=self.province,
+            created_by=self.user,
+            modified_by=self.user
+        )
+    
+    def test_acte_creation(self):
+        """Test création acte"""
+        self.assertEqual(self.acte.numero_acte, 'ACTE001')
+        self.assertEqual(self.acte.nom, 'Dupont')
+        self.assertEqual(self.acte.prenom, 'Jean')
+        self.assertEqual(self.acte.status, 'brouillon')
+    
+    def test_acte_str_method(self):
+        """Test méthode __str__"""
+        expected = "ACTE001 - Dupont Jean"
+        self.assertEqual(str(self.acte), expected)
+    
+    def test_acte_unique_numero(self):
+        """Test unicité numéro d'acte"""
+        with self.assertRaises(Exception):
+            ActeNaissance.objects.create(
+                numero_acte='ACTE001',  # Déjà existant
+                nom='Martin',
+                prenom='Pierre',
+                date_naissance=date(1990, 1, 1),
+                lieu_naissance='Kinshasa',
+                province=self.province,
+                created_by=self.user,
+                modified_by=self.user
+            )
+    
+    def test_qr_data_generation(self):
+        """Test génération données QR"""
+        qr_data = self.acte.get_qr_data()
+        self.assertIn('ACTE001', qr_data)
+        self.assertIn('Dupont', qr_data)
+        self.assertIn('Jean', qr_data)
+
+
+class ActeNaissanceAPITests(APITestCase):
+    """Tests API pour Actes de naissance"""
+    
+    def setUp(self):
+        self.client = APIClient()
+        
+        # Créer province
+        self.province = Province.objects.create(name='Kinshasa')
+        
+        # Créer utilisateurs
+        self.user = User.objects.create_user(
+            username='normaluser',
+            password='UserPass123!',
+            role='user',
+            email='user@test.com'
+        )
+        
+        self.mairie = User.objects.create_user(
+            username='mairie',
+            password='MairiePass123!',
+            role='mairie',
+            is_staff=True,
+            email='mairie@test.com'
+        )
+        
+        self.super_admin = User.objects.create_user(
+            username='superadmin',
+            password='SuperPass123!',
+            role='super_admin',
+            is_staff=True,
+            is_superuser=True,
+            email='super@test.com'
+        )
+        
+        # Créer quelques actes
+        self.acte1 = ActeNaissance.objects.create(
+            numero_acte='ACTE2025001',
+            nom='Dupont',
+            prenom='Jean',
+            date_naissance=date(1990, 1, 1),
+            lieu_naissance='Kinshasa',
+            province=self.province,
+            created_by=self.mairie,
+            modified_by=self.mairie,
+            status='valide'
+        )
+        
+        self.acte2 = ActeNaissance.objects.create(
+            numero_acte='ACTE2025002',
+            nom='Martin',
+            prenom='Marie',
+            date_naissance=date(1995, 5, 5),
+            lieu_naissance='Kinshasa',
+            province=self.province,
+            created_by=self.mairie,
+            modified_by=self.mairie,
+            status='brouillon'
+        )
+        
+        self.actes_url = reverse('acte-list')
+    
+    def login_as(self, user, password):
+        """Helper pour login"""
+        login_data = {'nom_utilisateur': user.username, 'mot_de_passe': password}
+        response = self.client.post(reverse('login'), login_data, format='json')
+        token = response.data['access']
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
+        return token
+    
+    def test_1_list_actes_as_user(self):
+        """Test 1: User voit seulement actes validés"""
+        self.login_as(self.user, 'UserPass123!')
+        
+        response = self.client.get(self.actes_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        # Ne devrait voir que l'acte validé
+        results = response.data['results']
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0]['numero_acte'], 'ACTE2025001')
+    
+    def test_2_list_actes_as_mairie(self):
+        """Test 2: Mairie voit tous ses actes"""
+        self.login_as(self.mairie, 'MairiePass123!')
+        
+        response = self.client.get(self.actes_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        # Devrait voir ses 2 actes
+        self.assertEqual(len(response.data['results']), 2)
+    
+    def test_3_create_acte_as_user(self):
+        """Test 3: User ne peut pas créer d'acte"""
+        self.login_as(self.user, 'UserPass123!')
+        
+        data = {
+            'numero_acte': 'ACTE2025003',
+            'nom': 'Test',
+            'prenom': 'User',
+            'date_naissance': '2000-01-01',
+            'lieu_naissance': 'Kinshasa',
+            'province_id': self.province.id
+        }
+        
+        response = self.client.post(self.actes_url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+    
+    def test_4_create_acte_as_mairie(self):
+        """Test 4: Mairie peut créer un acte"""
+        self.login_as(self.mairie, 'MairiePass123!')
+        
+        data = {
+            'numero_acte': 'ACTE2025003',
+            'nom': 'Test',
+            'prenom': 'Creation',
+            'date_naissance': '2000-01-01',
+            'lieu_naissance': 'Kinshasa',
+            'province_id': self.province.id
+        }
+        
+        response = self.client.post(self.actes_url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        
+        # Vérifier création
+        self.assertEqual(ActeNaissance.objects.count(), 3)
+        acte = ActeNaissance.objects.get(numero_acte='ACTE2025003')
+        self.assertEqual(acte.created_by, self.mairie)
+        self.assertEqual(acte.status, 'brouillon')
+    
+    def test_5_create_acte_duplicate_numero(self):
+        """Test 5: Impossible de créer avec numéro existant"""
+        self.login_as(self.mairie, 'MairiePass123!')
+        
+        data = {
+            'numero_acte': 'ACTE2025001',  # Déjà existant
+            'nom': 'Test',
+            'prenom': 'Duplicate',
+            'date_naissance': '2000-01-01',
+            'lieu_naissance': 'Kinshasa',
+            'province_id': self.province.id
+        }
+        
+        response = self.client.post(self.actes_url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('numero_acte', response.data)
+    
+    def test_6_create_acte_future_date(self):
+        """Test 6: Date de naissance future impossible"""
+        self.login_as(self.mairie, 'MairiePass123!')
+        
+        future_date = (timezone.now().date() + timedelta(days=365)).isoformat()
+        
+        data = {
+            'numero_acte': 'ACTE2025004',
+            'nom': 'Test',
+            'prenom': 'Future',
+            'date_naissance': future_date,
+            'lieu_naissance': 'Kinshasa',
+            'province_id': self.province.id
+        }
+        
+        response = self.client.post(self.actes_url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+    
+    def test_7_update_acte_as_creator(self):
+        """Test 7: Mairie peut modifier son acte"""
+        self.login_as(self.mairie, 'MairiePass123!')
+        
+        url = reverse('acte-detail', args=[self.acte2.id])
+        data = {'nom': 'Martin-Modifié'}
+        
+        response = self.client.patch(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        self.acte2.refresh_from_db()
+        self.assertEqual(self.acte2.nom, 'Martin-Modifié')
+    
+    def test_8_validate_acte(self):
+        """Test 8: Valider un acte"""
+        self.login_as(self.mairie, 'MairiePass123!')
+        
+        url = reverse('acte-validate', args=[self.acte2.id])
+        response = self.client.post(url)
+        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.acte2.refresh_from_db()
+        self.assertEqual(self.acte2.status, 'valide')
+    
+    def test_9_verify_acte(self):
+        """Test 9: Vérifier un acte"""
+        self.login_as(self.user, 'UserPass123!')
+        
+        url = reverse('acte-verify')
+        data = {
+            'numero_acte': 'ACTE2025001',
+            'nom': 'Dupont',
+            'prenom': 'Jean',
+            'date_naissance': '1990-01-01',
+            'lieu_naissance': 'Kinshasa',
+            'province_id': self.province.id
+        }
+        
+        response = self.client.post(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['status'], 'conforme')
+    
+    def test_10_verify_invalid_acte(self):
+        """Test 10: Vérifier acte invalide"""
+        self.login_as(self.user, 'UserPass123!')
+        
+        url = reverse('acte-verify')
+        data = {
+            'numero_acte': 'INVALID',
+            'nom': 'Inconnu',
+            'prenom': 'Personne',
+            'date_naissance': '1990-01-01',
+            'lieu_naissance': 'Kinshasa',
+            'province_id': self.province.id
+        }
+        
+        response = self.client.post(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+    
+    def test_11_search_actes(self):
+        """Test 11: Recherche d'actes"""
+        self.login_as(self.mairie, 'MairiePass123!')
+        
+        # Recherche par nom
+        response = self.client.get(f"{self.actes_url}?search=Dupont")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data['results']), 1)
+        
+        # Recherche par numéro
+        response = self.client.get(f"{self.actes_url}?search=ACTE2025002")
+        self.assertEqual(len(response.data['results']), 1)
+    
+    def test_12_filter_by_status(self):
+        """Test 12: Filtre par statut"""
+        self.login_as(self.mairie, 'MairiePass123!')
+        
+        response = self.client.get(f"{self.actes_url}?status=valide")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data['results']), 1)
+        self.assertEqual(response.data['results'][0]['status'], 'valide')
+    
+    def test_13_download_pdf(self):
+        """Test 13: Téléchargement PDF"""
+        self.login_as(self.user, 'UserPass123!')
+        
+        url = reverse('acte-download-pdf', args=[self.acte1.id])
+        response = self.client.get(url)
+        
+        # Devrait générer un PDF à la volée
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response['Content-Type'], 'application/pdf')
+    
+    def test_14_qr_code_generation(self):
+        """Test 14: Génération QR code"""
+        self.login_as(self.mairie, 'MairiePass123!')
+        
+        # Vérifier que le QR code est généré après validation
+        url = reverse('acte-validate', args=[self.acte2.id])
+        response = self.client.post(url)
+        
+        self.acte2.refresh_from_db()
+        self.assertIsNotNone(self.acte2.qr_code)
+    
+    def test_15_pagination(self):
+        """Test 15: Pagination fonctionne"""
+        self.login_as(self.mairie, 'MairiePass123!')
+        
+        # Créer plusieurs actes
+        for i in range(15):
+            ActeNaissance.objects.create(
+                numero_acte=f'ACTE2025{i+10:03d}',
+                nom=f'Test{i}',
+                prenom='Pagination',
+                date_naissance=date(2000, 1, 1),
+                lieu_naissance='Kinshasa',
+                province=self.province,
+                created_by=self.mairie,
+                modified_by=self.mairie
+            )
+        
+        response = self.client.get(self.actes_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        # Vérifier pagination (page_size=20 par défaut)
+        self.assertIn('count', response.data)
+        self.assertIn('next', response.data)
+        self.assertIn('previous', response.data)
+        self.assertIn('results', response.data)
+
+
+========== 5. APPLICATION PROVINCES ==========
+----- 5.1 Modèles -----
+from django.db import models
+
+class Province(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+
+    def __str__(self):
+        return self.name
+----- 5.2 Vues API -----
+from rest_framework import viewsets
+from rest_framework.permissions import IsAuthenticated
+from drf_yasg.utils import swagger_auto_schema
+from .models import Province
+from .serializers import ProvinceSerializer
+
+# Permission personnalisée
+from rest_framework.permissions import BasePermission
+
+class IsSuperAdmin(BasePermission):
+    def has_permission(self, request, view):
+        return bool(request.user and request.user.is_authenticated and request.user.role == 'super_admin')
+
+class ProvinceViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet pour gérer les provinces.
+    - Lecture accessible à tous les utilisateurs authentifiés.
+    - Création, modification et suppression réservées au Super Admin.
+    """
+    queryset = Province.objects.all()
+    serializer_class = ProvinceSerializer
+
+    def get_permissions(self):
+        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+            permission_classes = [IsSuperAdmin]
+        else:
+            permission_classes = [IsAuthenticated]
+        return [permission() for permission in permission_classes]
+
+    @swagger_auto_schema(
+        operation_summary="Lister les provinces",
+        operation_description="Récupère la liste de toutes les provinces disponibles"
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+----- 5.3 Vues Templates -----
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from .models import Province
+
+@login_required
+def province_list(request):
+    """Liste des provinces"""
+    provinces = Province.objects.all().order_by('name')
+    return render(request, 'provinces/liste.html', {'provinces': provinces})
+
+@login_required
+def province_create(request):
+    """Créer une nouvelle province (super admin seulement)"""
+    if request.user.role != 'super_admin':
+        messages.error(request, "Action non autorisée")
+        return redirect('province-list')
+    
+    if request.method == 'POST':
+        name = request.POST.get('name')
+        if name:
+            Province.objects.create(name=name)
+            messages.success(request, f"Province {name} créée")
+        return redirect('province-list')
+    
+    return redirect('province-list')
+
+@login_required
+def province_update(request, pk):
+    """Modifier une province (super admin seulement)"""
+    if request.user.role != 'super_admin':
+        messages.error(request, "Action non autorisée")
+        return redirect('province-list')
+    
+    province = get_object_or_404(Province, pk=pk)
+    
+    if request.method == 'POST':
+        name = request.POST.get('name')
+        if name:
+            province.name = name
+            province.save()
+            messages.success(request, f"Province modifiée")
+        return redirect('province-list')
+    
+    return redirect('province-list')
+
+@login_required
+def province_delete(request, pk):
+    """Supprimer une province (super admin seulement)"""
+    if request.user.role != 'super_admin':
+        messages.error(request, "Action non autorisée")
+        return redirect('province-list')
+    
+    province = get_object_or_404(Province, pk=pk)
+    province.delete()
+    messages.success(request, f"Province supprimée")
+    return redirect('province-list')
+----- 5.4 Serializers -----
+from rest_framework import serializers
+from .models import Province
+
+class ProvinceSerializer(serializers.ModelSerializer):
+    nom = serializers.CharField(source='name')  
+
+    class Meta:
+        model = Province
+        fields = ['id', 'nom']  
+----- 5.5 URLs API -----
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import ProvinceViewSet
+
+router = DefaultRouter()
+router.register(r'', ProvinceViewSet, basename='province')
+
+urlpatterns = [
+    path('', include(router.urls)),
+]
+----- 5.6 URLs Templates -----
+from django.urls import path
+from . import views_templates as views
+
+urlpatterns = [
+    path('', views.province_list, name='province-list'),
+    path('creer/', views.province_create, name='province-create'),
+    path('<int:pk>/modifier/', views.province_update, name='province-edit'),
+    path('<int:pk>/supprimer/', views.province_delete, name='province-delete'),
+]
+----- 5.7 Admin -----
+from django.contrib import admin
+from .models import Province
+
+admin.site.register(Province)
+----- 5.8 Tests -----
+from django.test import TestCase
+from rest_framework.test import APITestCase, APIClient
+from rest_framework import status
+from django.urls import reverse
+from .models import Province
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
+
+class ProvinceModelTests(TestCase):
+    """Tests pour le modèle Province"""
+    
+    def setUp(self):
+        self.province = Province.objects.create(name='Kinshasa')
+    
+    def test_province_creation(self):
+        """Test création province"""
+        self.assertEqual(self.province.name, 'Kinshasa')
+        self.assertEqual(str(self.province), 'Kinshasa')
+    
+    def test_province_unique_name(self):
+        """Test unicité du nom"""
+        with self.assertRaises(Exception):
+            Province.objects.create(name='Kinshasa')
+
+
+class ProvinceAPITests(APITestCase):
+    """Tests API pour Provinces"""
+    
+    def setUp(self):
+        self.client = APIClient()
+        
+        # Créer utilisateurs
+        self.user = User.objects.create_user(
+            username='normaluser',
+            password='UserPass123!',
+            role='user'
+        )
+        
+        self.super_admin = User.objects.create_user(
+            username='superadmin',
+            password='SuperPass123!',
+            role='super_admin',
+            is_staff=True,
+            is_superuser=True
+        )
+        
+        # Créer provinces
+        self.province1 = Province.objects.create(name='Kinshasa')
+        self.province2 = Province.objects.create(name='Lubumbashi')
+        
+        self.provinces_url = reverse('province-list')
+    
+    def test_1_list_provinces_authenticated(self):
+        """Test 1: Lister provinces (authentifié)"""
+        # Login user normal
+        login_data = {'nom_utilisateur': 'normaluser', 'mot_de_passe': 'UserPass123!'}
+        response = self.client.post(reverse('login'), login_data, format='json')
+        token = response.data['access']
+        
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
+        
+        # Lister provinces
+        response = self.client.get(self.provinces_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data['results']), 2)
+    
+    def test_2_list_provinces_unauthenticated(self):
+        """Test 2: Lister provinces (non authentifié)"""
+        response = self.client.get(self.provinces_url)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+    
+    def test_3_create_province_super_admin(self):
+        """Test 3: Créer province (super admin)"""
+        # Login super admin
+        login_data = {'nom_utilisateur': 'superadmin', 'mot_de_passe': 'SuperPass123!'}
+        response = self.client.post(reverse('login'), login_data, format='json')
+        token = response.data['access']
+        
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
+        
+        # Créer province
+        data = {'nom': 'Goma'}
+        response = self.client.post(self.provinces_url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Province.objects.count(), 3)
+    
+    def test_4_create_province_normal_user(self):
+        """Test 4: Créer province (user normal)"""
+        # Login user normal
+        login_data = {'nom_utilisateur': 'normaluser', 'mot_de_passe': 'UserPass123!'}
+        response = self.client.post(reverse('login'), login_data, format='json')
+        token = response.data['access']
+        
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
+        
+        # Tenter création
+        data = {'nom': 'Goma'}
+        response = self.client.post(self.provinces_url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+    
+    def test_5_update_province_super_admin(self):
+        """Test 5: Modifier province (super admin)"""
+        # Login super admin
+        login_data = {'nom_utilisateur': 'superadmin', 'mot_de_passe': 'SuperPass123!'}
+        response = self.client.post(reverse('login'), login_data, format='json')
+        token = response.data['access']
+        
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
+        
+        # Modifier
+        url = reverse('province-detail', args=[self.province1.id])
+        data = {'nom': 'Kinshasa Ville'}
+        response = self.client.patch(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.province1.refresh_from_db()
+        self.assertEqual(self.province1.name, 'Kinshasa Ville')
+    
+    def test_6_delete_province_super_admin(self):
+        """Test 6: Supprimer province (super admin)"""
+        # Login super admin
+        login_data = {'nom_utilisateur': 'superadmin', 'mot_de_passe': 'SuperPass123!'}
+        response = self.client.post(reverse('login'), login_data, format='json')
+        token = response.data['access']
+        
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
+        
+        # Supprimer
+        url = reverse('province-detail', args=[self.province1.id])
+        response = self.client.delete(url)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(Province.objects.count(), 1)
+
+
+========== 6. TESTS DE PERFORMANCE ET SÉCURITÉ ==========
+from django.test import TestCase
+from django.contrib.auth import get_user_model
+from rest_framework.test import APITestCase, APIClient
+from django.urls import reverse
+from .models import ActeNaissance
+from provinces.models import Province
+import time
+from datetime import date, timedelta
+
+User = get_user_model()
+
+class PerformanceTests(APITestCase):
+    """Tests de performance"""
+    
+    def setUp(self):
+        self.client = APIClient()
+        
+        # Créer admin
+        self.admin = User.objects.create_user(
+            username='admin',
+            password='AdminPass123!',
+            role='super_admin',
+            is_staff=True
+        )
+        
+        # Login
+        login_data = {'nom_utilisateur': 'admin', 'mot_de_passe': 'AdminPass123!'}
+        response = self.client.post(reverse('login'), login_data, format='json')
+        self.token = response.data['access']
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {self.token}')
+        
+        # Créer province
+        self.province = Province.objects.create(name='Kinshasa')
+        
+        # Créer beaucoup d'actes pour tester performances
+        self.create_bulk_actes(100)
+    
+    def create_bulk_actes(self, count):
+        """Crée plusieurs actes rapidement"""
+        actes = []
+        for i in range(count):
+            actes.append(ActeNaissance(
+                numero_acte=f'PERF{i:05d}',
+                nom=f'TestNom{i}',
+                prenom=f'TestPrenom{i}',
+                date_naissance=date(1990, 1, 1) + timedelta(days=i),
+                lieu_naissance='Kinshasa',
+                province=self.province,
+                created_by=self.admin,
+                modified_by=self.admin
+            ))
+        
+        ActeNaissance.objects.bulk_create(actes)
+    
+    def test_list_performance(self):
+        """Test performance de la liste"""
+        start_time = time.time()
+        
+        response = self.client.get('/api/actes/')
+        
+        duration = time.time() - start_time
+        
+        self.assertEqual(response.status_code, 200)
+        self.assertLess(duration, 1.0, f"Trop lent: {duration:.2f}s")
+        
+        print(f"⏱️  Liste actes: {duration:.3f}s")
+    
+    def test_search_performance(self):
+        """Test performance de la recherche"""
+        # Recherche textuelle
+        start_time = time.time()
+        response = self.client.get('/api/actes/?search=TestNom50')
+        duration = time.time() - start_time
+        
+        self.assertEqual(response.status_code, 200)
+        self.assertLess(duration, 0.5, f"Recherche trop lente: {duration:.2f}s")
+        print(f"⏱️  Recherche: {duration:.3f}s")
+    
+    def test_filter_performance(self):
+        """Test performance des filtres"""
+        start_time = time.time()
+        response = self.client.get(f'/api/actes/?province={self.province.id}')
+        duration = time.time() - start_time
+        
+        self.assertEqual(response.status_code, 200)
+        self.assertLess(duration, 0.5, f"Filtre trop lent: {duration:.2f}s")
+        print(f"⏱️  Filtre: {duration:.3f}s")
+    
+    def test_detail_performance(self):
+        """Test performance de récupération d'un détail"""
+        acte = ActeNaissance.objects.first()
+        
+        start_time = time.time()
+        response = self.client.get(f'/api/actes/{acte.id}/')
+        duration = time.time() - start_time
+        
+        self.assertEqual(response.status_code, 200)
+        self.assertLess(duration, 0.2, f"Détail trop lent: {duration:.2f}s")
+        print(f"⏱️  Détail acte: {duration:.3f}s")
+    
+    def test_create_performance(self):
+        """Test performance de création"""
+        data = {
+            'numero_acte': 'NEWACTE001',
+            'nom': 'Performance',
+            'prenom': 'Test',
+            'date_naissance': '2000-01-01',
+            'lieu_naissance': 'Kinshasa',
+            'province_id': self.province.id
+        }
+        
+        start_time = time.time()
+        response = self.client.post('/api/actes/', data, format='json')
+        duration = time.time() - start_time
+        
+        self.assertEqual(response.status_code, 201)
+        self.assertLess(duration, 0.5, f"Création trop lente: {duration:.2f}s")
+        print(f"⏱️  Création acte: {duration:.3f}s")
+    
+    def test_concurrent_requests(self):
+        """Simulation de requêtes concurrentes"""
+        import threading
+        
+        results = []
+        
+        def make_request():
+            response = self.client.get('/api/actes/')
+            results.append(response.status_code)
+        
+        threads = []
+        for i in range(10):
+            thread = threading.Thread(target=make_request)
+            threads.append(thread)
+            thread.start()
+        
+        for thread in threads:
+            thread.join()
+        
+        self.assertEqual(len(results), 10)
+        self.assertTrue(all(r == 200 for r in results))
+        print("✅ 10 requêtes concurrentes OK")
+    
+    def test_pagination_performance(self):
+        """Test performance avec différentes tailles de page"""
+        page_sizes = [10, 20, 50, 100]
+        
+        for size in page_sizes:
+            start_time = time.time()
+            response = self.client.get(f'/api/actes/?page_size={size}')
+            duration = time.time() - start_time
+            
+            self.assertEqual(response.status_code, 200)
+            self.assertLess(duration, 0.5, f"Page size {size} trop lent: {duration:.2f}s")
+            print(f"⏱️  Page size {size}: {duration:.3f}s")
+from django.test import TestCase
+from django.contrib.auth import get_user_model
+from rest_framework.test import APITestCase, APIClient
+from rest_framework import status
+from django.urls import reverse
+from django.core.cache import cache
+import time
+
+User = get_user_model()
+
+class SecurityTests(APITestCase):
+    """Tests de sécurité"""
+    
+    def setUp(self):
+        self.client = APIClient()
+        
+        # Créer un utilisateur
+        self.user = User.objects.create_user(
+            username='testuser',
+            email='test@test.com',
+            password='TestPass123!'
+        )
+        
+        self.login_url = reverse('login')
+        self.register_url = reverse('register')
+    
+    def test_rate_limiting_login(self):
+        """Test rate limiting sur login"""
+        # Tentatives rapides
+        for i in range(6):  # Plus que la limite de 5/min
+            data = {
+                'nom_utilisateur': 'testuser',
+                'mot_de_passe': 'wrongpass'
+            }
+            response = self.client.post(self.login_url, data, format='json')
+            
+            if i < 5:
+                self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+            else:
+                # Devrait être rate limité
+                self.assertEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+    
+    def test_rate_limiting_register(self):
+        """Test rate limiting sur register"""
+        base_data = {
+            'nom': 'Test',
+            'prenom': 'User',
+            'telephone': '+243123456789'
+        }
+        
+        for i in range(6):  # Plus que la limite
+            data = base_data.copy()
+            data.update({
+                'nom_utilisateur': f'user{i}',
+                'email': f'user{i}@test.com',
+                'mot_de_passe': 'TestPass123!',
+                'confirmation_mot_de_passe': 'TestPass123!'
+            })
+            
+            response = self.client.post(self.register_url, data, format='json')
+            
+            if i < 5:
+                self.assertIn(response.status_code, [status.HTTP_201_CREATED, status.HTTP_400_BAD_REQUEST])
+            else:
+                self.assertEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+    
+    def test_sql_injection_protection(self):
+        """Test protection contre injection SQL"""
+        self.client.force_authenticate(user=self.user)
+        
+        # Tentative d'injection SQL dans la recherche
+        malicious_input = "'; DROP TABLE accounts_user; --"
+        response = self.client.get(f"/api/actes/?search={malicious_input}")
+        
+        # Vérifier que la requête n'a pas crashé
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        # Vérifier que la table existe toujours
+        self.assertTrue(User.objects.exists())
+    
+    def test_xss_protection(self):
+        """Test protection contre XSS"""
+        self.client.force_authenticate(user=self.user)
+        
+        # Tentative d'injection XSS
+        xss_payload = "<script>alert('XSS')</script>"
+        response = self.client.get(f"/api/actes/?search={xss_payload}")
+        
+        # Vérifier que le payload n'est pas exécuté
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        content = response.content.decode()
+        self.assertNotIn('<script>', content)
+    
+    def test_jwt_token_security(self):
+        """Test sécurité des tokens JWT"""
+        # Login
+        data = {
+            'nom_utilisateur': 'testuser',
+            'mot_de_passe': 'TestPass123!'
+        }
+        response = self.client.post(self.login_url, data, format='json')
+        token = response.data['access']
+        
+        # Tester avec token modifié
+        modified_token = token[:-5] + 'xxxxx'
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {modified_token}')
+        response = self.client.get(reverse('me'))
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        
+        # Tester sans Bearer
+        self.client.credentials(HTTP_AUTHORIZATION=token)
+        response = self.client.get(reverse('me'))
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+    
+    def test_password_policy(self):
+        """Test politique de mots de passe"""
+        weak_passwords = [
+            '12345678',  # Trop simple
+            'password',  # Commun
+            'aaaaaaa',   # Trop simple
+            'test',      # Trop court
+            self.user.username,  # Similaire au username
+        ]
+        
+        base_data = {
+            'nom_utilisateur': 'newuser',
+            'email': 'new@test.com',
+            'confirmation_mot_de_passe': 'same',
+            'nom': 'Test',
+            'prenom': 'User',
+            'telephone': '+243123456789'
+        }
+        
+        for weak_pass in weak_passwords:
+            data = base_data.copy()
+            data['mot_de_passe'] = weak_pass
+            data['confirmation_mot_de_passe'] = weak_pass
+            
+            response = self.client.post(self.register_url, data, format='json')
+            self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+    
+    def test_session_hijacking_protection(self):
+        """Test protection contre le vol de session"""
+        # Login
+        data = {
+            'nom_utilisateur': 'testuser',
+            'mot_de_passe': 'TestPass123!'
+        }
+        response = self.client.post(self.login_url, data, format='json')
+        token = response.data['access']
+        
+        # Utiliser le token depuis une autre IP simulée
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
+        
+        # Le JWT ne lie pas à l'IP par défaut, mais on peut vérifier
+        # que les claims sont corrects
+        response = self.client.get(reverse('me'))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['username'], 'testuser')
+    
+    def test_brute_force_protection(self):
+        """Test protection contre brute force"""
+        # Tentatives rapides avec différents mots de passe
+        for i in range(10):
+            data = {
+                'nom_utilisateur': 'testuser',
+                'mot_de_passe': f'wrongpass{i}'
+            }
+            response = self.client.post(self.login_url, data, format='json')
+            
+            # Les premières tentatives échouent normalement
+            if i < 5:
+                self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+            else:
+                # Après 5 tentatives, rate limit ou compte verrouillé
+                self.assertIn(response.status_code, [
+                    status.HTTP_400_BAD_REQUEST,
+                    status.HTTP_429_TOO_MANY_REQUESTS
+                ])
+        
+        # Vérifier que le compte est verrouillé
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.is_account_locked())
+
+
+========== 7. FICHIER .ENV (exemple) ==========
+# Django Settings
+SECRET_KEY=django-insecure-8&cr^19da)e_z$_(z-9r8%v1!b8drf-fkia-s%xjhk3@&v2%i$
+DEBUG=True
+ALLOWED_HOSTS=localhost,127.0.0.1
+
+# Database
+DB_NAME=bornsafe_db
+DB_USER=bornsafe_user
+DB_PASSWORD=MotDePasseFort123!
+DB_HOST=localhost
+DB_PORT=5432
+
+# JWT Settings
+ACCESS_TOKEN_LIFETIME_MINUTES=60
+REFRESH_TOKEN_LIFETIME_DAYS=7
+
+# Security - MODIFIÉ POUR LE DÉVELOPPEMENT LOCAL
+SESSION_COOKIE_SECURE=False
+CSRF_COOKIE_SECURE=False
+SECURE_SSL_REDIRECT=False
+CORS_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:8000
+CSRF_TRUSTED_ORIGINS=http://localhost:3000,http://localhost:8000
+SECURE_HSTS_SECONDS=0

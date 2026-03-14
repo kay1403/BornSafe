@@ -19,4 +19,7 @@ urlpatterns = [
     path('utilisateurs/', views.user_list, name='user-list'),
     path('utilisateurs/<int:pk>/', views.user_detail, name='user-detail'),
     path('utilisateurs/<int:pk>/toggle/', views.user_toggle_active, name='user-toggle'),
+    
+    # Création de mairie (super admin seulement)
+    path('mairie/creer/', views.mairie_create, name='mairie-create'),
 ]

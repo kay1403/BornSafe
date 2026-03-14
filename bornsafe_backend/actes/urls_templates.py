@@ -11,4 +11,7 @@ urlpatterns = [
     
     # Actions
     path('<uuid:pk>/pdf/', views.acte_download_pdf, name='acte-download-pdf'),
+    
+    # Suppression (pour super admin)
+    path('<uuid:pk>/supprimer/', views.acte_delete, name='acte-delete'),
 ]

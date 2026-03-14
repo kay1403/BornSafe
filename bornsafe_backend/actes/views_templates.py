@@ -196,3 +196,22 @@ def acte_download_pdf(request, pk):
         as_attachment=True,
         filename=f"acte_{acte.numero_acte}.pdf"
     )
+
+@login_required
+def acte_delete(request, pk):
+    """Supprimer un acte (super admin seulement)"""
+    acte = get_object_or_404(ActeNaissance, pk=pk)
+    
+    # Vérification que seul le super admin peut supprimer
+    if request.user.role != 'super_admin':
+        messages.error(request, "Vous n'êtes pas autorisé à supprimer des actes")
+        return redirect('acte-detail', pk=acte.id)
+    
+    if request.method == 'POST':
+        numero = acte.numero_acte
+        acte.delete()
+        messages.success(request, f"Acte {numero} supprimé avec succès")
+        return redirect('acte-list')
+    
+    # Page de confirmation
+    return render(request, 'actes/confirm_delete.html', {'acte': acte})

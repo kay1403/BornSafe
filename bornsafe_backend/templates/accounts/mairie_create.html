@@ -1,0 +1,74 @@
+{% extends "base/base.html" %}
+
+{% block title %}Créer un compte mairie - BornSafe{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto py-8">
+    <div class="bg-white rounded-lg shadow-lg p-8 border border-gray-200">
+        <h1 class="text-2xl font-bold text-gray-900 mb-6 text-center">Créer un compte mairie</h1>
+        
+        {% if messages %}
+        <div class="mb-4">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        
+        <form method="post" class="space-y-4">
+            {% csrf_token %}
+            
+            <div>
+                <label class="form-label">Nom d'utilisateur</label>
+                <input type="text" name="username" required class="form-input">
+            </div>
+            
+            <div>
+                <label class="form-label">Email</label>
+                <input type="email" name="email" required class="form-input">
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="form-label">Prénom</label>
+                    <input type="text" name="first_name" required class="form-input">
+                </div>
+                <div>
+                    <label class="form-label">Nom</label>
+                    <input type="text" name="last_name" required class="form-input">
+                </div>
+            </div>
+            
+            <div>
+                <label class="form-label">Téléphone</label>
+                <input type="tel" name="phone_number" required class="form-input">
+            </div>
+            
+            <div>
+                <label class="form-label">Province rattachée</label>
+                <select name="province" required class="form-select">
+                    <option value="">Sélectionnez une province</option>
+                    {% for province in form.province.field.queryset %}
+                    <option value="{{ province.id }}">{{ province.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div>
+                <label class="form-label">Mot de passe</label>
+                <input type="password" name="password1" required class="form-input">
+            </div>
+            
+            <div>
+                <label class="form-label">Confirmer le mot de passe</label>
+                <input type="password" name="password2" required class="form-input">
+            </div>
+            
+            <div class="flex justify-end space-x-3 pt-4">
+                <a href="{% url 'user-list' %}" class="btn-secondary">Annuler</a>
+                <button type="submit" class="btn-primary">Créer la mairie</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
