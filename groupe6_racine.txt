@@ -1,0 +1,440 @@
+#!/usr/bin/env python
+"""Django's command-line utility for administrative tasks."""
+import os
+import sys
+
+
+def main():
+    """Run administrative tasks."""
+    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'bornsafe_backend.settings')
+    try:
+        from django.core.management import execute_from_command_line
+    except ImportError as exc:
+        raise ImportError(
+            "Couldn't import Django. Are you sure it's installed and "
+            "available on your PYTHONPATH environment variable? Did you "
+            "forget to activate a virtual environment?"
+        ) from exc
+    execute_from_command_line(sys.argv)
+
+
+if __name__ == '__main__':
+    main()
+# Django
+Django==5.2.6
+djangorestframework==3.16.1
+django-cors-headers==4.6.0
+django-environ==0.12.0
+django-filter==25.1
+django-ratelimit==4.1.0
+
+# Auth
+djangorestframework-simplejwt==5.5.1
+PyJWT==2.10.1
+
+# Database
+psycopg2-binary==2.9.10
+
+# Files & Images
+Pillow==11.3.0
+qrcode==8.2
+reportlab==4.4.4
+
+# API Documentation
+drf-yasg==1.21.10
+uritemplate==4.2.0
+
+# Security
+python-decouple==3.8
+bcrypt==4.2.1
+python-dotenv==1.0.1
+
+# Utils
+asgiref==3.9.1
+sqlparse==0.5.3
+pytz==2025.2
+charset-normalizer==3.4.3
+packaging==25.0
+inflection==0.5.1
+PyYAML==6.0.2
+
+# Performance
+redis==5.2.1
+django-redis==5.4.0
+{
+  "name": "bornsafe-tailwind",
+  "version": "1.0.0",
+  "description": "BornSafe avec Tailwind CSS",
+  "scripts": {
+    "build": "tailwindcss -i ./static/css/input.css -o ./static/css/output.css --minify",
+    "watch": "tailwindcss -i ./static/css/input.css -o ./static/css/output.css --watch"
+  },
+  "devDependencies": {
+    "@tailwindcss/aspect-ratio": "^0.4.2",
+    "@tailwindcss/forms": "^0.5.11",
+    "@tailwindcss/typography": "^0.5.19",
+    "tailwindcss": "^3.4.1"
+  }
+}
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: [
+    './templates/**/*.html',
+    './templates/**/*.js',
+    './static/js/**/*.js',
+  ],
+  theme: {
+    extend: {
+      colors: {
+        'gabon-green': '#3A7734',
+        'gabon-yellow': '#FCD116',
+        'gabon-blue': '#3A75C4',
+        'gabon-flag-green': '#009E60',
+        'gabon-flag-yellow': '#FCD116',
+        'gabon-flag-blue': '#3A75C4',
+      },
+    },
+  },
+  plugins: [
+    require('@tailwindcss/forms'),
+    require('@tailwindcss/typography'),
+    require('@tailwindcss/aspect-ratio'),
+  ],
+}
+from django.test import TestCase
+from django.contrib.auth import get_user_model
+from rest_framework.test import APITestCase, APIClient
+from django.urls import reverse
+from .models import ActeNaissance
+from provinces.models import Province
+import time
+from datetime import date, timedelta
+
+User = get_user_model()
+
+class PerformanceTests(APITestCase):
+    """Tests de performance"""
+    
+    def setUp(self):
+        self.client = APIClient()
+        
+        # Créer admin
+        self.admin = User.objects.create_user(
+            username='admin',
+            password='AdminPass123!',
+            role='super_admin',
+            is_staff=True
+        )
+        
+        # Login
+        login_data = {'nom_utilisateur': 'admin', 'mot_de_passe': 'AdminPass123!'}
+        response = self.client.post(reverse('login'), login_data, format='json')
+        self.token = response.data['access']
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {self.token}')
+        
+        # Créer province
+        self.province = Province.objects.create(name='Kinshasa')
+        
+        # Créer beaucoup d'actes pour tester performances
+        self.create_bulk_actes(100)
+    
+    def create_bulk_actes(self, count):
+        """Crée plusieurs actes rapidement"""
+        actes = []
+        for i in range(count):
+            actes.append(ActeNaissance(
+                numero_acte=f'PERF{i:05d}',
+                nom=f'TestNom{i}',
+                prenom=f'TestPrenom{i}',
+                date_naissance=date(1990, 1, 1) + timedelta(days=i),
+                lieu_naissance='Kinshasa',
+                province=self.province,
+                created_by=self.admin,
+                modified_by=self.admin
+            ))
+        
+        ActeNaissance.objects.bulk_create(actes)
+    
+    def test_list_performance(self):
+        """Test performance de la liste"""
+        start_time = time.time()
+        
+        response = self.client.get('/api/actes/')
+        
+        duration = time.time() - start_time
+        
+        self.assertEqual(response.status_code, 200)
+        self.assertLess(duration, 1.0, f"Trop lent: {duration:.2f}s")
+        
+        print(f"⏱️  Liste actes: {duration:.3f}s")
+    
+    def test_search_performance(self):
+        """Test performance de la recherche"""
+        # Recherche textuelle
+        start_time = time.time()
+        response = self.client.get('/api/actes/?search=TestNom50')
+        duration = time.time() - start_time
+        
+        self.assertEqual(response.status_code, 200)
+        self.assertLess(duration, 0.5, f"Recherche trop lente: {duration:.2f}s")
+        print(f"⏱️  Recherche: {duration:.3f}s")
+    
+    def test_filter_performance(self):
+        """Test performance des filtres"""
+        start_time = time.time()
+        response = self.client.get(f'/api/actes/?province={self.province.id}')
+        duration = time.time() - start_time
+        
+        self.assertEqual(response.status_code, 200)
+        self.assertLess(duration, 0.5, f"Filtre trop lent: {duration:.2f}s")
+        print(f"⏱️  Filtre: {duration:.3f}s")
+    
+    def test_detail_performance(self):
+        """Test performance de récupération d'un détail"""
+        acte = ActeNaissance.objects.first()
+        
+        start_time = time.time()
+        response = self.client.get(f'/api/actes/{acte.id}/')
+        duration = time.time() - start_time
+        
+        self.assertEqual(response.status_code, 200)
+        self.assertLess(duration, 0.2, f"Détail trop lent: {duration:.2f}s")
+        print(f"⏱️  Détail acte: {duration:.3f}s")
+    
+    def test_create_performance(self):
+        """Test performance de création"""
+        data = {
+            'numero_acte': 'NEWACTE001',
+            'nom': 'Performance',
+            'prenom': 'Test',
+            'date_naissance': '2000-01-01',
+            'lieu_naissance': 'Kinshasa',
+            'province_id': self.province.id
+        }
+        
+        start_time = time.time()
+        response = self.client.post('/api/actes/', data, format='json')
+        duration = time.time() - start_time
+        
+        self.assertEqual(response.status_code, 201)
+        self.assertLess(duration, 0.5, f"Création trop lente: {duration:.2f}s")
+        print(f"⏱️  Création acte: {duration:.3f}s")
+    
+    def test_concurrent_requests(self):
+        """Simulation de requêtes concurrentes"""
+        import threading
+        
+        results = []
+        
+        def make_request():
+            response = self.client.get('/api/actes/')
+            results.append(response.status_code)
+        
+        threads = []
+        for i in range(10):
+            thread = threading.Thread(target=make_request)
+            threads.append(thread)
+            thread.start()
+        
+        for thread in threads:
+            thread.join()
+        
+        self.assertEqual(len(results), 10)
+        self.assertTrue(all(r == 200 for r in results))
+        print("✅ 10 requêtes concurrentes OK")
+    
+    def test_pagination_performance(self):
+        """Test performance avec différentes tailles de page"""
+        page_sizes = [10, 20, 50, 100]
+        
+        for size in page_sizes:
+            start_time = time.time()
+            response = self.client.get(f'/api/actes/?page_size={size}')
+            duration = time.time() - start_time
+            
+            self.assertEqual(response.status_code, 200)
+            self.assertLess(duration, 0.5, f"Page size {size} trop lent: {duration:.2f}s")
+            print(f"⏱️  Page size {size}: {duration:.3f}s")
+from django.test import TestCase
+from django.contrib.auth import get_user_model
+from rest_framework.test import APITestCase, APIClient
+from rest_framework import status
+from django.urls import reverse
+from django.core.cache import cache
+import time
+
+User = get_user_model()
+
+class SecurityTests(APITestCase):
+    """Tests de sécurité"""
+    
+    def setUp(self):
+        self.client = APIClient()
+        
+        # Créer un utilisateur
+        self.user = User.objects.create_user(
+            username='testuser',
+            email='test@test.com',
+            password='TestPass123!'
+        )
+        
+        self.login_url = reverse('login')
+        self.register_url = reverse('register')
+    
+    def test_rate_limiting_login(self):
+        """Test rate limiting sur login"""
+        # Tentatives rapides
+        for i in range(6):  # Plus que la limite de 5/min
+            data = {
+                'nom_utilisateur': 'testuser',
+                'mot_de_passe': 'wrongpass'
+            }
+            response = self.client.post(self.login_url, data, format='json')
+            
+            if i < 5:
+                self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+            else:
+                # Devrait être rate limité
+                self.assertEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+    
+    def test_rate_limiting_register(self):
+        """Test rate limiting sur register"""
+        base_data = {
+            'nom': 'Test',
+            'prenom': 'User',
+            'telephone': '+243123456789'
+        }
+        
+        for i in range(6):  # Plus que la limite
+            data = base_data.copy()
+            data.update({
+                'nom_utilisateur': f'user{i}',
+                'email': f'user{i}@test.com',
+                'mot_de_passe': 'TestPass123!',
+                'confirmation_mot_de_passe': 'TestPass123!'
+            })
+            
+            response = self.client.post(self.register_url, data, format='json')
+            
+            if i < 5:
+                self.assertIn(response.status_code, [status.HTTP_201_CREATED, status.HTTP_400_BAD_REQUEST])
+            else:
+                self.assertEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+    
+    def test_sql_injection_protection(self):
+        """Test protection contre injection SQL"""
+        self.client.force_authenticate(user=self.user)
+        
+        # Tentative d'injection SQL dans la recherche
+        malicious_input = "'; DROP TABLE accounts_user; --"
+        response = self.client.get(f"/api/actes/?search={malicious_input}")
+        
+        # Vérifier que la requête n'a pas crashé
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        # Vérifier que la table existe toujours
+        self.assertTrue(User.objects.exists())
+    
+    def test_xss_protection(self):
+        """Test protection contre XSS"""
+        self.client.force_authenticate(user=self.user)
+        
+        # Tentative d'injection XSS
+        xss_payload = "<script>alert('XSS')</script>"
+        response = self.client.get(f"/api/actes/?search={xss_payload}")
+        
+        # Vérifier que le payload n'est pas exécuté
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        content = response.content.decode()
+        self.assertNotIn('<script>', content)
+    
+    def test_jwt_token_security(self):
+        """Test sécurité des tokens JWT"""
+        # Login
+        data = {
+            'nom_utilisateur': 'testuser',
+            'mot_de_passe': 'TestPass123!'
+        }
+        response = self.client.post(self.login_url, data, format='json')
+        token = response.data['access']
+        
+        # Tester avec token modifié
+        modified_token = token[:-5] + 'xxxxx'
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {modified_token}')
+        response = self.client.get(reverse('me'))
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        
+        # Tester sans Bearer
+        self.client.credentials(HTTP_AUTHORIZATION=token)
+        response = self.client.get(reverse('me'))
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+    
+    def test_password_policy(self):
+        """Test politique de mots de passe"""
+        weak_passwords = [
+            '12345678',  # Trop simple
+            'password',  # Commun
+            'aaaaaaa',   # Trop simple
+            'test',      # Trop court
+            self.user.username,  # Similaire au username
+        ]
+        
+        base_data = {
+            'nom_utilisateur': 'newuser',
+            'email': 'new@test.com',
+            'confirmation_mot_de_passe': 'same',
+            'nom': 'Test',
+            'prenom': 'User',
+            'telephone': '+243123456789'
+        }
+        
+        for weak_pass in weak_passwords:
+            data = base_data.copy()
+            data['mot_de_passe'] = weak_pass
+            data['confirmation_mot_de_passe'] = weak_pass
+            
+            response = self.client.post(self.register_url, data, format='json')
+            self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+    
+    def test_session_hijacking_protection(self):
+        """Test protection contre le vol de session"""
+        # Login
+        data = {
+            'nom_utilisateur': 'testuser',
+            'mot_de_passe': 'TestPass123!'
+        }
+        response = self.client.post(self.login_url, data, format='json')
+        token = response.data['access']
+        
+        # Utiliser le token depuis une autre IP simulée
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
+        
+        # Le JWT ne lie pas à l'IP par défaut, mais on peut vérifier
+        # que les claims sont corrects
+        response = self.client.get(reverse('me'))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['username'], 'testuser')
+    
+    def test_brute_force_protection(self):
+        """Test protection contre brute force"""
+        # Tentatives rapides avec différents mots de passe
+        for i in range(10):
+            data = {
+                'nom_utilisateur': 'testuser',
+                'mot_de_passe': f'wrongpass{i}'
+            }
+            response = self.client.post(self.login_url, data, format='json')
+            
+            # Les premières tentatives échouent normalement
+            if i < 5:
+                self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+            else:
+                # Après 5 tentatives, rate limit ou compte verrouillé
+                self.assertIn(response.status_code, [
+                    status.HTTP_400_BAD_REQUEST,
+                    status.HTTP_429_TOO_MANY_REQUESTS
+                ])
+        
+        # Vérifier que le compte est verrouillé
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.is_account_locked())

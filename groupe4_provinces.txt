@@ -1,0 +1,203 @@
+from django.contrib import admin
+from .models import Province
+
+admin.site.register(Province)
+from django.apps import AppConfig
+
+
+class ProvincesConfig(AppConfig):
+    default_auto_field = 'django.db.models.BigAutoField'
+    name = 'provinces'
+from django.db import models
+
+class Province(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+
+    def __str__(self):
+        return self.name
+from rest_framework import serializers
+from .models import Province
+
+class ProvinceSerializer(serializers.ModelSerializer):
+    nom = serializers.CharField(source='name')  
+
+    class Meta:
+        model = Province
+        fields = ['id', 'nom']  
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import ProvinceViewSet
+
+router = DefaultRouter()
+router.register(r'', ProvinceViewSet, basename='province')
+
+urlpatterns = [
+    path('', include(router.urls)),
+]
+from rest_framework import viewsets
+from rest_framework.permissions import IsAuthenticated
+from drf_yasg.utils import swagger_auto_schema
+from .models import Province
+from .serializers import ProvinceSerializer
+
+# Permission personnalisée
+from rest_framework.permissions import BasePermission
+
+class IsSuperAdmin(BasePermission):
+    def has_permission(self, request, view):
+        return bool(request.user and request.user.is_authenticated and request.user.role == 'super_admin')
+
+class ProvinceViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet pour gérer les provinces.
+    - Lecture accessible à tous les utilisateurs authentifiés.
+    - Création, modification et suppression réservées au Super Admin.
+    """
+    queryset = Province.objects.all()
+    serializer_class = ProvinceSerializer
+
+    def get_permissions(self):
+        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+            permission_classes = [IsSuperAdmin]
+        else:
+            permission_classes = [IsAuthenticated]
+        return [permission() for permission in permission_classes]
+
+    @swagger_auto_schema(
+        operation_summary="Lister les provinces",
+        operation_description="Récupère la liste de toutes les provinces disponibles"
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+from django.test import TestCase
+from rest_framework.test import APITestCase, APIClient
+from rest_framework import status
+from django.urls import reverse
+from .models import Province
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
+
+class ProvinceModelTests(TestCase):
+    """Tests pour le modèle Province"""
+    
+    def setUp(self):
+        self.province = Province.objects.create(name='Kinshasa')
+    
+    def test_province_creation(self):
+        """Test création province"""
+        self.assertEqual(self.province.name, 'Kinshasa')
+        self.assertEqual(str(self.province), 'Kinshasa')
+    
+    def test_province_unique_name(self):
+        """Test unicité du nom"""
+        with self.assertRaises(Exception):
+            Province.objects.create(name='Kinshasa')
+
+
+class ProvinceAPITests(APITestCase):
+    """Tests API pour Provinces"""
+    
+    def setUp(self):
+        self.client = APIClient()
+        
+        # Créer utilisateurs
+        self.user = User.objects.create_user(
+            username='normaluser',
+            password='UserPass123!',
+            role='user'
+        )
+        
+        self.super_admin = User.objects.create_user(
+            username='superadmin',
+            password='SuperPass123!',
+            role='super_admin',
+            is_staff=True,
+            is_superuser=True
+        )
+        
+        # Créer provinces
+        self.province1 = Province.objects.create(name='Kinshasa')
+        self.province2 = Province.objects.create(name='Lubumbashi')
+        
+        self.provinces_url = reverse('province-list')
+    
+    def test_1_list_provinces_authenticated(self):
+        """Test 1: Lister provinces (authentifié)"""
+        # Login user normal
+        login_data = {'nom_utilisateur': 'normaluser', 'mot_de_passe': 'UserPass123!'}
+        response = self.client.post(reverse('login'), login_data, format='json')
+        token = response.data['access']
+        
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
+        
+        # Lister provinces
+        response = self.client.get(self.provinces_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data['results']), 2)
+    
+    def test_2_list_provinces_unauthenticated(self):
+        """Test 2: Lister provinces (non authentifié)"""
+        response = self.client.get(self.provinces_url)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+    
+    def test_3_create_province_super_admin(self):
+        """Test 3: Créer province (super admin)"""
+        # Login super admin
+        login_data = {'nom_utilisateur': 'superadmin', 'mot_de_passe': 'SuperPass123!'}
+        response = self.client.post(reverse('login'), login_data, format='json')
+        token = response.data['access']
+        
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
+        
+        # Créer province
+        data = {'nom': 'Goma'}
+        response = self.client.post(self.provinces_url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Province.objects.count(), 3)
+    
+    def test_4_create_province_normal_user(self):
+        """Test 4: Créer province (user normal)"""
+        # Login user normal
+        login_data = {'nom_utilisateur': 'normaluser', 'mot_de_passe': 'UserPass123!'}
+        response = self.client.post(reverse('login'), login_data, format='json')
+        token = response.data['access']
+        
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
+        
+        # Tenter création
+        data = {'nom': 'Goma'}
+        response = self.client.post(self.provinces_url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+    
+    def test_5_update_province_super_admin(self):
+        """Test 5: Modifier province (super admin)"""
+        # Login super admin
+        login_data = {'nom_utilisateur': 'superadmin', 'mot_de_passe': 'SuperPass123!'}
+        response = self.client.post(reverse('login'), login_data, format='json')
+        token = response.data['access']
+        
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
+        
+        # Modifier
+        url = reverse('province-detail', args=[self.province1.id])
+        data = {'nom': 'Kinshasa Ville'}
+        response = self.client.patch(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.province1.refresh_from_db()
+        self.assertEqual(self.province1.name, 'Kinshasa Ville')
+    
+    def test_6_delete_province_super_admin(self):
+        """Test 6: Supprimer province (super admin)"""
+        # Login super admin
+        login_data = {'nom_utilisateur': 'superadmin', 'mot_de_passe': 'SuperPass123!'}
+        response = self.client.post(reverse('login'), login_data, format='json')
+        token = response.data['access']
+        
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
+        
+        # Supprimer
+        url = reverse('province-detail', args=[self.province1.id])
+        response = self.client.delete(url)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(Province.objects.count(), 1)

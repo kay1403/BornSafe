@@ -50,14 +50,14 @@ class EnregistrementSerializer(serializers.ModelSerializer):
         """Validation personnalisée"""
         
         # Vérifier que les mots de passe correspondent
-        if data.get('password') != data.get('confirmation_password'):
+        if data.get('mot_de_passe') != data.get('confirmation_mot_de_passe'):
             raise serializers.ValidationError({
                 'confirmation_mot_de_passe': "Les mots de passe ne correspondent pas"
             })
         
         # Vérifier la force du mot de passe
         try:
-            validate_password(data.get('password'))
+            validate_password(data.get('mot_de_passe'))
         except exceptions.ValidationError as e:
             raise serializers.ValidationError({'mot_de_passe': list(e.messages)})
         
@@ -79,8 +79,8 @@ class EnregistrementSerializer(serializers.ModelSerializer):
         """Création de l'utilisateur"""
         
         # Supprimer le champ de confirmation
-        validated_data.pop('confirmation_password')
-        password = validated_data.pop('password')
+        validated_data.pop('confirmation_mot_de_passe')
+        password = validated_data.pop('mot_de_passe')
         
         user = User(
             username=validated_data['username'],
@@ -120,13 +120,13 @@ class AdminCreationSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         """Validation similaire à EnregistrementSerializer"""
-        if data.get('password') != data.get('confirmation_password'):
+        if data.get('mot_de_passe') != data.get('confirmation_mot_de_passe'):
             raise serializers.ValidationError({
                 'confirmation_mot_de_passe': "Les mots de passe ne correspondent pas"
             })
         
         try:
-            validate_password(data.get('password'))
+            validate_password(data.get('mot_de_passe'))
         except exceptions.ValidationError as e:
             raise serializers.ValidationError({'mot_de_passe': list(e.messages)})
         
@@ -134,8 +134,8 @@ class AdminCreationSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         """Création de l'admin"""
-        validated_data.pop('confirmation_password')
-        password = validated_data.pop('password')
+        validated_data.pop('confirmation_mot_de_passe')
+        password = validated_data.pop('mot_de_passe')
         
         admin = User(
             username=validated_data['username'],

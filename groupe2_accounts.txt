@@ -1,0 +1,872 @@
+from django.contrib import admin
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
+admin.site.register(User)
+from django.apps import AppConfig
+
+
+class AccountsConfig(AppConfig):
+    default_auto_field = 'django.db.models.BigAutoField'
+    name = 'accounts'
+from django.contrib.auth.models import AbstractUser
+from django.db import models
+from django.core.validators import RegexValidator, MinLengthValidator
+from django.utils import timezone
+
+class User(AbstractUser):
+    """Modèle utilisateur amélioré avec validation"""
+    
+    # Validateur pour le numéro de téléphone
+    phone_regex = RegexValidator(
+        regex=r'^\+?1?\d{9,15}$',
+        message="Le numéro de téléphone doit être au format: '+999999999'. Jusqu'à 15 chiffres autorisés."
+    )
+    
+    phone_number = models.CharField(
+        max_length=20, 
+        blank=True, 
+        null=True,
+        validators=[phone_regex],
+        help_text="Numéro de téléphone au format international"
+    )
+    
+    ROLE_CHOICES = [
+        ('super_admin', 'Super Admin'),
+        ('mairie', 'Mairie'),
+        ('user', 'Utilisateur'),
+    ]
+    
+    role = models.CharField(
+        max_length=20, 
+        choices=ROLE_CHOICES, 
+        default='user',
+        db_index=True  # Index pour améliorer les performances des recherches par rôle
+    )
+    
+    # Champs de suivi
+    last_activity = models.DateTimeField(null=True, blank=True)
+    failed_login_attempts = models.IntegerField(default=0)
+    last_failed_login = models.DateTimeField(null=True, blank=True)
+    account_locked_until = models.DateTimeField(null=True, blank=True)
+    
+    class Meta:
+        indexes = [
+            models.Index(fields=['email']),
+            models.Index(fields=['role']),
+        ]
+    
+    def __str__(self):
+        return f"{self.username} ({self.get_role_display()})"
+    
+    def record_failed_login(self):
+        """Enregistre une tentative de connexion échouée"""
+        self.failed_login_attempts += 1
+        self.last_failed_login = timezone.now()
+        
+        # Verrouiller le compte après 5 tentatives échouées
+        if self.failed_login_attempts >= 5:
+            self.account_locked_until = timezone.now() + timezone.timedelta(minutes=30)
+        
+        self.save(update_fields=['failed_login_attempts', 'last_failed_login', 'account_locked_until'])
+    
+    def reset_failed_login_attempts(self):
+        """Réinitialise les tentatives de connexion échouées"""
+        self.failed_login_attempts = 0
+        self.account_locked_until = None
+        self.save(update_fields=['failed_login_attempts', 'account_locked_until'])
+    
+    def is_account_locked(self):
+        """Vérifie si le compte est verrouillé"""
+        if self.account_locked_until and self.account_locked_until > timezone.now():
+            return True
+        return False
+from rest_framework import permissions
+
+class IsSuperAdmin(permissions.BasePermission):
+    """
+    Permission pour les super admins uniquement
+    """
+    def has_permission(self, request, view):
+        return bool(
+            request.user and 
+            request.user.is_authenticated and 
+            request.user.role == 'super_admin'
+        )
+
+class IsMairieOrSuperAdmin(permissions.BasePermission):
+    """
+    Permission pour les mairies et super admins
+    """
+    def has_permission(self, request, view):
+        return bool(
+            request.user and 
+            request.user.is_authenticated and 
+            request.user.role in ['mairie', 'super_admin']
+        )
+
+class IsOwnerOrReadOnly(permissions.BasePermission):
+    """
+    Permission pour permettre à un utilisateur de modifier uniquement ses objets
+    """
+    def has_object_permission(self, request, view, obj):
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        return obj.created_by == request.user or request.user.role == 'super_admin'
+from rest_framework import serializers
+from django.contrib.auth import get_user_model, authenticate
+from django.contrib.auth.password_validation import validate_password
+from django.core import exceptions
+from django.utils import timezone
+import logging
+
+logger = logging.getLogger('bornsafe')
+User = get_user_model()
+
+class UtilisateurSerializer(serializers.ModelSerializer):
+    """Serializer pour afficher un utilisateur"""
+    
+    nom_utilisateur = serializers.CharField(source='username', read_only=True)
+    nom = serializers.CharField(source='first_name', read_only=True)
+    prenom = serializers.CharField(source='last_name', read_only=True)
+    telephone = serializers.CharField(source='phone_number', read_only=True)
+    role_utilisateur = serializers.CharField(source='role', read_only=True)
+    est_admin = serializers.BooleanField(source='is_staff', read_only=True)
+    est_actif = serializers.BooleanField(source='is_active', read_only=True)
+
+    class Meta:
+        model = User
+        fields = [
+            'id', 'nom_utilisateur', 'email', 'nom', 'prenom', 
+            'telephone', 'role_utilisateur', 'est_admin', 'est_actif',
+            'date_joined', 'last_login'
+        ]
+
+
+class EnregistrementSerializer(serializers.ModelSerializer):
+    """Serializer pour l'enregistrement d'un utilisateur"""
+    
+    nom_utilisateur = serializers.CharField(source='username', min_length=3, max_length=50)
+    mot_de_passe = serializers.CharField(write_only=True, required=True, min_length=8)
+    confirmation_mot_de_passe = serializers.CharField(write_only=True, required=True)
+    nom = serializers.CharField(source='first_name', required=True)
+    prenom = serializers.CharField(source='last_name', required=True)
+    telephone = serializers.CharField(source='phone_number', required=True)
+    email = serializers.EmailField(required=True)
+
+    class Meta:
+        model = User
+        fields = [
+            'nom_utilisateur', 'email', 'mot_de_passe', 'confirmation_mot_de_passe',
+            'nom', 'prenom', 'telephone'
+        ]
+
+    def validate(self, data):
+        """Validation personnalisée"""
+        
+        # Vérifier que les mots de passe correspondent
+        if data.get('password') != data.get('confirmation_password'):
+            raise serializers.ValidationError({
+                'confirmation_mot_de_passe': "Les mots de passe ne correspondent pas"
+            })
+        
+        # Vérifier la force du mot de passe
+        try:
+            validate_password(data.get('password'))
+        except exceptions.ValidationError as e:
+            raise serializers.ValidationError({'mot_de_passe': list(e.messages)})
+        
+        # Vérifier que l'email n'est pas déjà utilisé
+        if User.objects.filter(email=data.get('email')).exists():
+            raise serializers.ValidationError({
+                'email': "Cet email est déjà utilisé"
+            })
+        
+        # Vérifier que le nom d'utilisateur n'est pas déjà utilisé
+        if User.objects.filter(username=data.get('username')).exists():
+            raise serializers.ValidationError({
+                'nom_utilisateur': "Ce nom d'utilisateur est déjà pris"
+            })
+        
+        return data
+
+    def create(self, validated_data):
+        """Création de l'utilisateur"""
+        
+        # Supprimer le champ de confirmation
+        validated_data.pop('confirmation_password')
+        password = validated_data.pop('password')
+        
+        user = User(
+            username=validated_data['username'],
+            email=validated_data['email'],
+            first_name=validated_data['first_name'],
+            last_name=validated_data['last_name'],
+            phone_number=validated_data.get('phone_number', ''),
+            role='user',
+            is_staff=False,
+            is_active=True
+        )
+        user.set_password(password)
+        user.save()
+        
+        logger.info(f"Nouvel utilisateur créé: {user.username}")
+        return user
+
+
+class AdminCreationSerializer(serializers.ModelSerializer):
+    """Serializer pour créer un admin"""
+    
+    nom_utilisateur = serializers.CharField(source='username', min_length=3, max_length=50)
+    mot_de_passe = serializers.CharField(write_only=True, required=True, min_length=8)
+    confirmation_mot_de_passe = serializers.CharField(write_only=True, required=True)
+    nom = serializers.CharField(source='first_name', required=True)
+    prenom = serializers.CharField(source='last_name', required=True)
+    telephone = serializers.CharField(source='phone_number', required=True)
+    email = serializers.EmailField(required=True)
+    role = serializers.ChoiceField(choices=User.ROLE_CHOICES, default='mairie')
+
+    class Meta:
+        model = User
+        fields = [
+            'nom_utilisateur', 'email', 'mot_de_passe', 'confirmation_mot_de_passe',
+            'nom', 'prenom', 'telephone', 'role'
+        ]
+
+    def validate(self, data):
+        """Validation similaire à EnregistrementSerializer"""
+        if data.get('password') != data.get('confirmation_password'):
+            raise serializers.ValidationError({
+                'confirmation_mot_de_passe': "Les mots de passe ne correspondent pas"
+            })
+        
+        try:
+            validate_password(data.get('password'))
+        except exceptions.ValidationError as e:
+            raise serializers.ValidationError({'mot_de_passe': list(e.messages)})
+        
+        return data
+
+    def create(self, validated_data):
+        """Création de l'admin"""
+        validated_data.pop('confirmation_password')
+        password = validated_data.pop('password')
+        
+        admin = User(
+            username=validated_data['username'],
+            email=validated_data['email'],
+            first_name=validated_data['first_name'],
+            last_name=validated_data['last_name'],
+            phone_number=validated_data['phone_number'],
+            role=validated_data.get('role', 'mairie'),
+            is_staff=True,
+            is_superuser=False,
+            is_active=True
+        )
+        admin.set_password(password)
+        admin.save()
+        
+        logger.info(f"Nouvel administrateur créé: {admin.username}")
+        return admin
+
+
+class LoginSerializer(serializers.Serializer):
+    """Serializer pour la connexion"""
+    
+    nom_utilisateur = serializers.CharField(required=True)
+    mot_de_passe = serializers.CharField(required=True, write_only=True)
+
+    def validate(self, data):
+        """Validation des identifiants"""
+        username = data.get('nom_utilisateur')
+        password = data.get('mot_de_passe')
+
+        if username and password:
+            user = authenticate(username=username, password=password)
+            
+            if user:
+                if not user.is_active:
+                    raise serializers.ValidationError("Ce compte est désactivé")
+                
+                if user.is_account_locked():
+                    raise serializers.ValidationError(
+                        "Compte temporairement verrouillé. Réessayez plus tard."
+                    )
+                
+                # Réinitialiser les tentatives échouées
+                user.reset_failed_login_attempts()
+                
+            else:
+                # Enregistrer la tentative échouée
+                try:
+                    user = User.objects.get(username=username)
+                    user.record_failed_login()
+                except User.DoesNotExist:
+                    pass
+                
+                raise serializers.ValidationError("Nom d'utilisateur ou mot de passe incorrect")
+        else:
+            raise serializers.ValidationError("Veuillez fournir nom d'utilisateur et mot de passe")
+
+        data['user'] = user
+        return data
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import UserViewSet
+from rest_framework_simplejwt.views import TokenRefreshView
+
+router = DefaultRouter()
+router.register(r'users', UserViewSet, basename='user')
+
+urlpatterns = [
+    path('', include(router.urls)),
+    path('register/', UserViewSet.as_view({'post': 'register'}), name='register'),
+    path('login/', UserViewSet.as_view({'post': 'login'}), name='login'),
+    path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('me/', UserViewSet.as_view({'get': 'me'}), name='me'),
+    path('update-profile/', UserViewSet.as_view({'put': 'update_profile'}), name='update-profile'),
+    path('change-password/', UserViewSet.as_view({'post': 'change_password'}), name='change-password'),
+]
+from django.urls import path
+from django.contrib.auth import views as auth_views
+from . import views_templates as views
+
+urlpatterns = [
+    # Authentification
+    path('login/', auth_views.LoginView.as_view(
+        template_name='accounts/login.html',
+        redirect_authenticated_user=True
+    ), name='login'),
+    
+    path('logout/', auth_views.LogoutView.as_view(), name='logout'),
+    
+    # Profil
+    path('profil/', views.profile, name='profile'),
+    path('changer-mot-de-passe/', views.change_password, name='change-password'),
+    
+    # Gestion des utilisateurs (admin seulement)
+    path('utilisateurs/', views.user_list, name='user-list'),
+    path('utilisateurs/<int:pk>/', views.user_detail, name='user-detail'),
+    path('utilisateurs/<int:pk>/toggle/', views.user_toggle_active, name='user-toggle'),
+]
+from rest_framework import viewsets, status
+from rest_framework.response import Response
+from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
+from rest_framework.decorators import action
+from django.contrib.auth import get_user_model
+from django.utils import timezone
+from rest_framework_simplejwt.tokens import RefreshToken
+from django_ratelimit.decorators import ratelimit
+from django.utils.decorators import method_decorator
+from .serializers import (
+    UtilisateurSerializer, EnregistrementSerializer, 
+    AdminCreationSerializer, LoginSerializer
+)
+import logging
+
+logger = logging.getLogger('bornsafe')
+User = get_user_model()
+
+class UserViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet pour gérer les utilisateurs.
+    """
+    queryset = User.objects.all().order_by('-date_joined')
+    
+    def get_serializer_class(self):
+        if self.action == 'register':
+            return EnregistrementSerializer
+        elif self.action == 'create_admin':
+            return AdminCreationSerializer
+        elif self.action == 'login':
+            return LoginSerializer
+        return UtilisateurSerializer
+
+    def get_permissions(self):
+        if self.action in ['create', 'register', 'login']:
+            return [AllowAny()]
+        elif self.action == 'create_admin':
+            return [IsAdminUser()]
+        elif self.action in ['me', 'update_profile', 'change_password']:
+            return [IsAuthenticated()]
+        return [IsAuthenticated()]
+
+    @action(detail=False, methods=['post'])
+    @method_decorator(ratelimit(key='ip', rate='5/m', method='POST'))
+    def register(self, request):
+        """Enregistrement d'un nouvel utilisateur"""
+        serializer = EnregistrementSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        
+        # Générer les tokens
+        refresh = RefreshToken.for_user(user)
+        
+        return Response({
+            'user': UtilisateurSerializer(user).data,
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
+        }, status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=['post'])
+    @method_decorator(ratelimit(key='ip', rate='3/m', method='POST'))
+    def login(self, request):
+        """Connexion utilisateur"""
+        serializer = LoginSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.validated_data['user']
+        
+        # Mettre à jour la dernière activité
+        user.last_activity = timezone.now()
+        user.save(update_fields=['last_activity'])
+        
+        # Générer les tokens
+        refresh = RefreshToken.for_user(user)
+        
+        logger.info(f"Connexion réussie: {user.username}")
+        
+        return Response({
+            'user': UtilisateurSerializer(user).data,
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
+        })
+
+    @action(detail=False, methods=['post'])
+    def create_admin(self, request):
+        """Création d'un admin par un super admin"""
+        if request.user.role != 'super_admin':
+            return Response(
+                {"error": "Seuls les super admins peuvent créer des admins"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        serializer = AdminCreationSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        admin = serializer.save()
+        
+        return Response(
+            UtilisateurSerializer(admin).data, 
+            status=status.HTTP_201_CREATED
+        )
+
+    @action(detail=False, methods=['get'])
+    def me(self, request):
+        """Récupérer le profil de l'utilisateur connecté"""
+        serializer = UtilisateurSerializer(request.user)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['put', 'patch'])
+    def update_profile(self, request):
+        """Mettre à jour son propre profil"""
+        user = request.user
+        serializer = UtilisateurSerializer(
+            user, 
+            data=request.data, 
+            partial=True,
+            context={'request': request}
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        
+        logger.info(f"Profil mis à jour: {user.username}")
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['post'])
+    def change_password(self, request):
+        """Changer son mot de passe"""
+        user = request.user
+        old_password = request.data.get('old_password')
+        new_password = request.data.get('new_password')
+        confirm_password = request.data.get('confirm_password')
+        
+        if not user.check_password(old_password):
+            return Response(
+                {"old_password": "Ancien mot de passe incorrect"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if new_password != confirm_password:
+            return Response(
+                {"confirm_password": "Les mots de passe ne correspondent pas"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        user.set_password(new_password)
+        user.save()
+        
+        logger.info(f"Mot de passe changé: {user.username}")
+        return Response(
+            {"message": "Mot de passe modifié avec succès"},
+            status=status.HTTP_200_OK
+        )
+
+    @action(detail=True, methods=['post'])
+    def toggle_active(self, request, pk=None):
+        """Activer/désactiver un utilisateur (admin uniquement)"""
+        if not request.user.is_staff:
+            return Response(
+                {"error": "Permission refusée"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        user = self.get_object()
+        user.is_active = not user.is_active
+        user.save()
+        
+        status_text = "activé" if user.is_active else "désactivé"
+        logger.info(f"Compte {status_text}: {user.username} par {request.user.username}")
+        
+        return Response({
+            "message": f"Compte {status_text}",
+            "is_active": user.is_active
+        })
+from django.test import TestCase, Client
+from django.contrib.auth import get_user_model
+from rest_framework.test import APITestCase, APIClient
+from rest_framework import status
+from django.urls import reverse
+from django.core.files.uploadedfile import SimpleUploadedFile
+import json
+import tempfile
+from PIL import Image
+
+User = get_user_model()
+
+class UserModelTests(TestCase):
+    """Tests approfondis pour le modèle User"""
+    
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username='testuser',
+            email='test@test.com',
+            password='TestPass123!',
+            first_name='Test',
+            last_name='User',
+            phone_number='+243123456789'
+        )
+        
+        self.admin = User.objects.create_user(
+            username='admin',
+            email='admin@test.com',
+            password='AdminPass123!',
+            first_name='Admin',
+            last_name='User',
+            role='super_admin',
+            is_staff=True
+        )
+    
+    def test_user_creation(self):
+        """Test la création d'utilisateur"""
+        self.assertEqual(self.user.username, 'testuser')
+        self.assertEqual(self.user.email, 'test@test.com')
+        self.assertTrue(self.user.check_password('TestPass123!'))
+        self.assertEqual(self.user.role, 'user')
+        self.assertEqual(self.user.phone_number, '+243123456789')
+        self.assertFalse(self.user.is_staff)
+    
+    def test_admin_creation(self):
+        """Test la création d'admin"""
+        self.assertEqual(self.admin.role, 'super_admin')
+        self.assertTrue(self.admin.is_staff)
+    
+    def test_user_str_method(self):
+        """Test la méthode __str__"""
+        self.assertEqual(str(self.user), "testuser (Utilisateur)")
+    
+    def test_failed_login_tracking(self):
+        """Test le suivi des tentatives échouées"""
+        # Test initial
+        self.assertEqual(self.user.failed_login_attempts, 0)
+        self.assertFalse(self.user.is_account_locked())
+        
+        # 3 tentatives échouées
+        for i in range(3):
+            self.user.record_failed_login()
+        self.assertEqual(self.user.failed_login_attempts, 3)
+        self.assertFalse(self.user.is_account_locked())
+        
+        # 5 tentatives échouées (verrouillage)
+        for i in range(2):
+            self.user.record_failed_login()
+        self.assertEqual(self.user.failed_login_attempts, 5)
+        self.assertTrue(self.user.is_account_locked())
+        
+        # Test réinitialisation
+        self.user.reset_failed_login_attempts()
+        self.assertEqual(self.user.failed_login_attempts, 0)
+        self.assertFalse(self.user.is_account_locked())
+    
+    def test_unique_constraints(self):
+        """Test les contraintes d'unicité"""
+        with self.assertRaises(Exception):
+            User.objects.create_user(
+                username='testuser',  # Déjà existant
+                email='autre@test.com',
+                password='password123'
+            )
+        
+        with self.assertRaises(Exception):
+            User.objects.create_user(
+                username='autreuser',
+                email='test@test.com',  # Déjà existant
+                password='password123'
+            )
+
+
+class UserAPITests(APITestCase):
+    """Tests API pour User"""
+    
+    def setUp(self):
+        self.client = APIClient()
+        self.register_url = reverse('register')
+        self.login_url = reverse('login')
+        self.me_url = reverse('me')
+        self.change_password_url = reverse('change-password')
+        
+        # Données valides
+        self.valid_user_data = {
+            'nom_utilisateur': 'nouvelutilisateur',
+            'email': 'nouveau@test.com',
+            'mot_de_passe': 'TestPass123!',
+            'confirmation_mot_de_passe': 'TestPass123!',
+            'nom': 'Nouveau',
+            'prenom': 'Utilisateur',
+            'telephone': '+243123456789'
+        }
+    
+    def test_1_registration_success(self):
+        """Test 1: Enregistrement réussi"""
+        response = self.client.post(self.register_url, self.valid_user_data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertIn('access', response.data)
+        self.assertIn('refresh', response.data)
+        self.assertEqual(response.data['user']['email'], self.valid_user_data['email'])
+        
+        # Vérifier que l'utilisateur est bien créé
+        user = User.objects.get(username='nouvelutilisateur')
+        self.assertEqual(user.first_name, 'Nouveau')
+        self.assertEqual(user.role, 'user')
+    
+    def test_2_registration_password_mismatch(self):
+        """Test 2: Mots de passe différents"""
+        data = self.valid_user_data.copy()
+        data['confirmation_mot_de_passe'] = 'wrongpassword'
+        response = self.client.post(self.register_url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('confirmation_mot_de_passe', response.data)
+    
+    def test_3_registration_weak_password(self):
+        """Test 3: Mot de passe trop faible"""
+        data = self.valid_user_data.copy()
+        data['mot_de_passe'] = '123'
+        data['confirmation_mot_de_passe'] = '123'
+        response = self.client.post(self.register_url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('mot_de_passe', response.data)
+    
+    def test_4_registration_duplicate_username(self):
+        """Test 4: Nom d'utilisateur déjà pris"""
+        # Premier enregistrement
+        self.client.post(self.register_url, self.valid_user_data, format='json')
+        
+        # Deuxième avec même username
+        data = self.valid_user_data.copy()
+        data['email'] = 'autre@test.com'
+        response = self.client.post(self.register_url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('nom_utilisateur', response.data)
+    
+    def test_5_login_success(self):
+        """Test 5: Connexion réussie"""
+        # Créer utilisateur
+        self.client.post(self.register_url, self.valid_user_data, format='json')
+        
+        # Login
+        login_data = {
+            'nom_utilisateur': 'nouvelutilisateur',
+            'mot_de_passe': 'TestPass123!'
+        }
+        response = self.client.post(self.login_url, login_data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn('access', response.data)
+        self.assertIn('refresh', response.data)
+        self.assertEqual(response.data['user']['nom_utilisateur'], 'nouvelutilisateur')
+    
+    def test_6_login_wrong_password(self):
+        """Test 6: Mauvais mot de passe"""
+        # Créer utilisateur
+        self.client.post(self.register_url, self.valid_user_data, format='json')
+        
+        # Mauvais mot de passe
+        login_data = {
+            'nom_utilisateur': 'nouvelutilisateur',
+            'mot_de_passe': 'wrongpass'
+        }
+        response = self.client.post(self.login_url, login_data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+    
+    def test_7_login_account_locked(self):
+        """Test 7: Compte verrouillé après 5 tentatives"""
+        # Créer utilisateur
+        self.client.post(self.register_url, self.valid_user_data, format='json')
+        
+        # 5 tentatives échouées
+        login_data = {
+            'nom_utilisateur': 'nouvelutilisateur',
+            'mot_de_passe': 'wrongpass'
+        }
+        
+        for i in range(5):
+            response = self.client.post(self.login_url, login_data, format='json')
+            if i < 4:
+                self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        
+        # 6ème tentative - compte verrouillé
+        response = self.client.post(self.login_url, login_data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('verrouillé', str(response.data).lower())
+    
+    def test_8_authenticated_endpoint(self):
+        """Test 8: Accès endpoint protégé"""
+        # Créer et connecter
+        reg_response = self.client.post(self.register_url, self.valid_user_data, format='json')
+        token = reg_response.data['access']
+        
+        # Accéder à /me/
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
+        response = self.client.get(self.me_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['email'], self.valid_user_data['email'])
+    
+    def test_9_change_password(self):
+        """Test 9: Changement de mot de passe"""
+        # Créer et connecter
+        reg_response = self.client.post(self.register_url, self.valid_user_data, format='json')
+        token = reg_response.data['access']
+        
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
+        
+        # Changer mot de passe
+        password_data = {
+            'old_password': 'TestPass123!',
+            'new_password': 'NewPass123!',
+            'confirm_password': 'NewPass123!'
+        }
+        response = self.client.post(self.change_password_url, password_data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        # Tester nouveau mot de passe
+        self.client.credentials()  # Enlever token
+        login_data = {
+            'nom_utilisateur': 'nouvelutilisateur',
+            'mot_de_passe': 'NewPass123!'
+        }
+        response = self.client.post(self.login_url, login_data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+    
+    def test_10_invalid_token(self):
+        """Test 10: Token invalide"""
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer invalidtoken123')
+        response = self.client.get(self.me_url)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
+class UserPermissionsTests(APITestCase):
+    """Tests des permissions"""
+    
+    def setUp(self):
+        self.client = APIClient()
+        
+        # Créer différents types d'utilisateurs
+        self.user = User.objects.create_user(
+            username='normaluser',
+            email='user@test.com',
+            password='UserPass123!',
+            role='user'
+        )
+        
+        self.mairie = User.objects.create_user(
+            username='mairie',
+            email='mairie@test.com',
+            password='MairiePass123!',
+            role='mairie',
+            is_staff=True
+        )
+        
+        self.super_admin = User.objects.create_user(
+            username='superadmin',
+            email='super@test.com',
+            password='SuperPass123!',
+            role='super_admin',
+            is_staff=True,
+            is_superuser=True
+        )
+    
+    def test_user_cannot_create_admin(self):
+        """Test: User normal ne peut pas créer d'admin"""
+        # Login user normal
+        login_data = {'nom_utilisateur': 'normaluser', 'mot_de_passe': 'UserPass123!'}
+        response = self.client.post(reverse('login'), login_data, format='json')
+        token = response.data['access']
+        
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
+        
+        # Tenter création admin
+        admin_data = {
+            'nom_utilisateur': 'newadmin',
+            'email': 'newadmin@test.com',
+            'mot_de_passe': 'AdminPass123!',
+            'confirmation_mot_de_passe': 'AdminPass123!',
+            'nom': 'New',
+            'prenom': 'Admin',
+            'telephone': '+243123456789',
+            'role': 'mairie'
+        }
+        response = self.client.post(reverse('create-admin'), admin_data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+    
+    def test_mairie_cannot_create_admin(self):
+        """Test: Mairie ne peut pas créer d'admin"""
+        # Login mairie
+        login_data = {'nom_utilisateur': 'mairie', 'mot_de_passe': 'MairiePass123!'}
+        response = self.client.post(reverse('login'), login_data, format='json')
+        token = response.data['access']
+        
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
+        
+        # Tenter création admin
+        admin_data = {
+            'nom_utilisateur': 'newadmin',
+            'email': 'newadmin@test.com',
+            'mot_de_passe': 'AdminPass123!',
+            'confirmation_mot_de_passe': 'AdminPass123!',
+            'nom': 'New',
+            'prenom': 'Admin',
+            'telephone': '+243123456789',
+            'role': 'mairie'
+        }
+        response = self.client.post(reverse('create-admin'), admin_data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+    
+    def test_super_admin_can_create_admin(self):
+        """Test: Super admin peut créer admin"""
+        # Login super admin
+        login_data = {'nom_utilisateur': 'superadmin', 'mot_de_passe': 'SuperPass123!'}
+        response = self.client.post(reverse('login'), login_data, format='json')
+        token = response.data['access']
+        
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
+        
+        # Créer admin
+        admin_data = {
+            'nom_utilisateur': 'newadmin',
+            'email': 'newadmin@test.com',
+            'mot_de_passe': 'AdminPass123!',
+            'confirmation_mot_de_passe': 'AdminPass123!',
+            'nom': 'New',
+            'prenom': 'Admin',
+            'telephone': '+243123456789',
+            'role': 'mairie'
+        }
+        response = self.client.post(reverse('create-admin'), admin_data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)

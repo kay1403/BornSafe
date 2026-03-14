@@ -1,0 +1,161 @@
+{% extends "base/base.html" %}
+
+{% block title %}
+    {% if acte %}Modifier{% else %}Nouvel{% endif %} acte de naissance - BornSafe Mairie
+{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+    <!-- En-tête -->
+    <div class="mb-6">
+        <h1 class="text-2xl font-bold text-gray-900">
+            {% if acte %}Modifier l'acte {{ acte.numero_acte }}{% else %}Nouvel acte de naissance{% endif %}
+        </h1>
+        <p class="text-sm text-gray-600 mt-1">
+            Remplissez les informations ci-dessous pour {% if acte %}modifier{% else %}créer{% endif %} un acte de naissance
+        </p>
+    </div>
+    
+    <!-- Formulaire -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <form method="post" enctype="multipart/form-data" class="space-y-6">
+            {% csrf_token %}
+            
+            {% if form.errors %}
+            <div class="alert alert-error">
+                <p class="font-medium mb-2">Veuillez corriger les erreurs suivantes :</p>
+                {{ form.errors }}
+            </div>
+            {% endif %}
+            
+            <!-- Numéro d'acte -->
+            <div>
+                <label for="{{ form.numero_acte.id_for_label }}" class="form-label">
+                    Numéro d'acte <span class="text-red-500">*</span>
+                </label>
+                {{ form.numero_acte }}
+                {% if form.numero_acte.help_text %}
+                <p class="mt-1 text-sm text-gray-500">{{ form.numero_acte.help_text }}</p>
+                {% endif %}
+                {% if form.numero_acte.errors %}
+                <p class="mt-1 text-sm text-red-600">{{ form.numero_acte.errors.0 }}</p>
+                {% endif %}
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Nom -->
+                <div>
+                    <label for="{{ form.nom.id_for_label }}" class="form-label">
+                        Nom <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.nom }}
+                    {% if form.nom.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.nom.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                
+                <!-- Prénom -->
+                <div>
+                    <label for="{{ form.prenom.id_for_label }}" class="form-label">
+                        Prénom <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.prenom }}
+                    {% if form.prenom.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.prenom.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Date de naissance -->
+                <div>
+                    <label for="{{ form.date_naissance.id_for_label }}" class="form-label">
+                        Date de naissance <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.date_naissance }}
+                    {% if form.date_naissance.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.date_naissance.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                
+                <!-- Lieu de naissance -->
+                <div>
+                    <label for="{{ form.lieu_naissance.id_for_label }}" class="form-label">
+                        Lieu de naissance <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.lieu_naissance }}
+                    {% if form.lieu_naissance.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.lieu_naissance.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Province -->
+            <div>
+                <label for="{{ form.province.id_for_label }}" class="form-label">
+                    Province <span class="text-red-500">*</span>
+                </label>
+                {{ form.province }}
+                {% if form.province.errors %}
+                <p class="mt-1 text-sm text-red-600">{{ form.province.errors.0 }}</p>
+                {% endif %}
+            </div>
+            
+            <!-- Statut (uniquement pour mairie/admin) -->
+            {% if user.role == 'mairie' or user.role == 'super_admin' %}
+            <div>
+                <label for="{{ form.status.id_for_label }}" class="form-label">Statut</label>
+                {{ form.status }}
+                {% if form.status.help_text %}
+                <p class="mt-1 text-sm text-gray-500">{{ form.status.help_text }}</p>
+                {% endif %}
+            </div>
+            {% endif %}
+            
+            <!-- Fichier PDF (optionnel) -->
+            <div>
+                <label for="{{ form.fichier_pdf.id_for_label }}" class="form-label">Document PDF</label>
+                <div class="mt-1 flex items-center space-x-3">
+                    {{ form.fichier_pdf }}
+                </div>
+                {% if form.fichier_pdf.errors %}
+                <p class="mt-1 text-sm text-red-600">{{ form.fichier_pdf.errors.0 }}</p>
+                {% endif %}
+            </div>
+            
+            <!-- Boutons d'action -->
+            <div class="flex items-center justify-end space-x-3 pt-6 border-t border-gray-200">
+                <a href="{% url 'acte-list' %}" class="btn-secondary">
+                    Annuler
+                </a>
+                <button type="submit" class="btn-primary">
+                    {% if acte %}Mettre à jour{% else %}Créer l'acte{% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Informations complémentaires -->
+    <div class="mt-6 bg-blue-50 rounded-lg p-4 border border-blue-200">
+        <h3 class="text-sm font-medium text-blue-800 mb-2">Informations importantes :</h3>
+        <ul class="text-xs text-blue-700 space-y-1">
+            <li>• Le numéro d'acte doit être unique dans le système</li>
+            <li>• La date de naissance ne peut pas être dans le futur</li>
+            <li>• Les champs marqués d'un <span class="text-red-500">*</span> sont obligatoires</li>
+            <li>• Vous pourrez générer le PDF et le QR code après la création</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Amélioration de l'input date
+    document.addEventListener('DOMContentLoaded', function() {
+        const dateInput = document.getElementById('{{ form.date_naissance.id_for_label }}');
+        if (dateInput) {
+            dateInput.type = 'date';
+        }
+    });
+</script>
+{% endblock %}

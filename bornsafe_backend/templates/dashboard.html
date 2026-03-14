@@ -1,0 +1,202 @@
+{% extends "base/base.html" %}
+
+{% block title %}Tableau de bord - BornSafe Mairie{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- En-tête -->
+    <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-bold text-gray-900">Tableau de bord</h1>
+        <div class="flex items-center space-x-2">
+            <span class="text-sm text-gray-500">Province: <span class="font-medium text-gray-900">{{ user.province.name|default:"Toutes" }}</span></span>
+            <div class="h-4 w-px bg-gray-300"></div>
+            <span class="text-sm text-gray-500">{{ current_date|date:"l d F Y" }}</span>
+        </div>
+    </div>
+    
+    <!-- Statistiques -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <!-- Total actes -->
+        <div class="stat-card">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="stat-title">Total actes</p>
+                    <p class="stat-value">{{ total_actes|default:"0" }}</p>
+                </div>
+                <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                    <svg class="w-6 h-6 text-gabon-flag-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                </div>
+            </div>
+            <div class="stat-change stat-change-positive">
+                <span class="font-medium">+{{ actes_mois|default:"0" }}</span> ce mois
+            </div>
+        </div>
+        
+        <!-- Actes validés -->
+        <div class="stat-card">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="stat-title">Actes validés</p>
+                    <p class="stat-value">{{ actes_valides|default:"0" }}</p>
+                </div>
+                <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+            </div>
+            <div class="stat-change stat-change-positive">
+                <span class="font-medium">{{ taux_validation|default:"0" }}%</span> de validation
+            </div>
+        </div>
+        
+        <!-- En attente -->
+        <div class="stat-card">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="stat-title">En attente</p>
+                    <p class="stat-value">{{ actes_attente|default:"0" }}</p>
+                </div>
+                <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
+                    <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+            </div>
+            <div class="stat-change">
+                <span class="font-medium">{{ actes_attente|default:"0" }}</span> à traiter
+            </div>
+        </div>
+        
+        <!-- Utilisateurs actifs -->
+        <div class="stat-card">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="stat-title">Utilisateurs</p>
+                    <p class="stat-value">{{ total_users|default:"0" }}</p>
+                </div>
+                <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                    <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                    </svg>
+                </div>
+            </div>
+            <div class="stat-change">
+                <span class="font-medium">{{ users_actifs|default:"0" }}</span> actifs
+            </div>
+        </div>
+    </div>
+    
+    <!-- Graphiques et activités récentes -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Graphique des actes par mois -->
+        <div class="card lg:col-span-2">
+            <div class="card-header">
+                <h3 class="text-lg font-medium text-gray-900">Actes de naissance par mois</h3>
+            </div>
+            <div class="card-body">
+                <div class="h-64 flex items-center justify-center text-gray-500">
+                    <!-- Ici vous pouvez intégrer Chart.js ou un autre outil -->
+                    <div class="text-center">
+                        <svg class="w-12 h-12 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>
+                        <p>Graphique des actes mensuels</p>
+                        <p class="text-sm">(Intégration Chart.js à venir)</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Activités récentes -->
+        <div class="card">
+            <div class="card-header">
+                <h3 class="text-lg font-medium text-gray-900">Activités récentes</h3>
+            </div>
+            <div class="card-body">
+                <div class="space-y-4">
+                    {% for activite in activites_recentes|default:"" %}
+                    <div class="flex items-start space-x-3">
+                        <div class="flex-shrink-0">
+                            <div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
+                                <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="flex-1">
+                            <p class="text-sm text-gray-900">{{ activite.description }}</p>
+                            <p class="text-xs text-gray-500">{{ activite.date|timesince }}</p>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="text-center text-gray-500 py-4">
+                        <p>Aucune activité récente</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Actes récents -->
+    <div class="card">
+        <div class="card-header flex items-center justify-between">
+            <h3 class="text-lg font-medium text-gray-900">Derniers actes enregistrés</h3>
+            <a href="{% url 'acte-list' %}" class="text-sm text-gabon-flag-green hover:text-gabon-flag-green/80">Voir tous →</a>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">N° Acte</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nom complet</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date naissance</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Province</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Statut</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for acte in actes_recents|default:"" %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ acte.numero_acte }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ acte.nom }} {{ acte.prenom }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ acte.date_naissance|date:"d/m/Y" }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ acte.province.name }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% if acte.status == 'valide' %}
+                            <span class="badge badge-success">Validé</span>
+                            {% elif acte.status == 'brouillon' %}
+                            <span class="badge badge-warning">Brouillon</span>
+                            {% else %}
+                            <span class="badge badge-danger">Annulé</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                            <a href="{% url 'acte-detail' acte.id %}" class="text-gabon-flag-green hover:text-gabon-flag-green/80 mr-3">Voir</a>
+                            <a href="{% url 'acte-edit' acte.id %}" class="text-blue-600 hover:text-blue-800">Modifier</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="px-6 py-4 text-center text-gray-500">
+                            Aucun acte enregistré
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Ici vous pouvez ajouter Chart.js pour les graphiques
+    console.log('Dashboard chargé');
+</script>
+{% endblock %}

@@ -1,0 +1,93 @@
+{% extends "base/base.html" %}
+
+{% block title %}Accueil - BornSafe Mairie{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto text-center py-12">
+    <h1 class="text-4xl font-bold text-gray-900 mb-4">Bienvenue sur BornSafe</h1>
+    <p class="text-xl text-gray-600 mb-8">Système de gestion des actes de naissance pour les mairies du Gabon</p>
+    
+    {% if not user.is_authenticated %}
+    <!-- Section pour les visiteurs -->
+    <div class="bg-white rounded-lg shadow-lg p-8 mb-12 border border-gray-200">
+        <h2 class="text-2xl font-bold text-gray-900 mb-6">Commencez dès maintenant</h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Connexion -->
+            <div class="p-6 border border-gray-200 rounded-lg hover:shadow-md transition-shadow">
+                <div class="w-16 h-16 bg-gabon-flag-green rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-semibold text-gray-900 mb-2">J'ai déjà un compte</h3>
+                <p class="text-gray-600 mb-4">Connectez-vous pour accéder à votre espace</p>
+                <a href="{% url 'login' %}" class="inline-block bg-gabon-flag-green text-white px-6 py-3 rounded-lg font-medium hover:bg-gabon-flag-green/90 transition-colors">
+                    Se connecter
+                </a>
+            </div>
+            
+            <!-- Inscription -->
+            <div class="p-6 border border-gray-200 rounded-lg hover:shadow-md transition-shadow">
+                <div class="w-16 h-16 bg-gabon-flag-yellow rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-8 h-8 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-semibold text-gray-900 mb-2">Créer un compte</h3>
+                <p class="text-gray-600 mb-4">Inscrivez-vous pour commencer à utiliser BornSafe</p>
+                <a href="{% url 'register-page' %}" class="inline-block bg-gabon-flag-yellow text-gray-900 px-6 py-3 rounded-lg font-medium hover:bg-gabon-flag-yellow/90 transition-colors">
+                    S'inscrire
+                </a>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <!-- Section pour les utilisateurs connectés -->
+    <div class="bg-white rounded-lg shadow-lg p-8 mb-12 border border-gray-200">
+        <h2 class="text-2xl font-bold text-gray-900 mb-4">Bonjour {{ user.get_full_name|default:user.username }} !</h2>
+        <p class="text-gray-600 mb-6">Que souhaitez-vous faire aujourd'hui ?</p>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <a href="{% url 'dashboard' %}" class="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                <svg class="w-8 h-8 text-gabon-flag-green mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path>
+                </svg>
+                <span class="text-sm font-medium">Tableau de bord</span>
+            </a>
+            
+            <a href="{% url 'acte-list' %}" class="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                <svg class="w-8 h-8 text-gabon-flag-green mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+                <span class="text-sm font-medium">Actes de naissance</span>
+            </a>
+            
+            <a href="{% url 'profile' %}" class="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                <svg class="w-8 h-8 text-gabon-flag-green mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                </svg>
+                <span class="text-sm font-medium">Mon profil</span>
+            </a>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Drapeau du Gabon -->
+    <div class="flex h-2 w-48 mx-auto mt-12">
+        <div class="flex-1 bg-gabon-flag-green"></div>
+        <div class="flex-1 bg-gabon-flag-yellow"></div>
+        <div class="flex-1 bg-gabon-flag-blue"></div>
+    </div>
+    
+    <!-- Provinces du Gabon -->
+    <div class="mt-12">
+        <h3 class="text-lg font-semibold text-gray-700 mb-4">Provinces du Gabon</h3>
+        <div class="flex flex-wrap justify-center gap-2">
+            {% for region in gabon_regions %}
+            <span class="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">{{ region }}</span>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,237 @@
+{% extends "base/base.html" %}
+
+{% block title %}Statistiques - BornSafe Mairie{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <h1 class="text-2xl font-bold text-gray-900">Statistiques du système</h1>
+    
+    <!-- Filtres -->
+    <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-200">
+        <form method="get" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+                <label class="form-label">Année</label>
+                <select name="year" class="form-select">
+                    {% for y in years %}
+                    <option value="{{ y }}" {% if year == y %}selected{% endif %}>{{ y }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div>
+                <label class="form-label">Province</label>
+                <select name="province" class="form-select">
+                    <option value="">Toutes</option>
+                    {% for province in provinces %}
+                    <option value="{{ province.id }}" {% if province_id == province.id|stringformat:"s" %}selected{% endif %}>
+                        {{ province.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="flex items-end">
+                <button type="submit" class="btn-primary w-full">
+                    Filtrer
+                </button>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Cartes statistiques -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="stat-card">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="stat-title">Total actes</p>
+                    <p class="stat-value">{{ total_actes }}</p>
+                </div>
+                <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                </div>
+            </div>
+            <div class="stat-change {% if variation_actes > 0 %}stat-change-positive{% else %}stat-change-negative{% endif %}">
+                {{ variation_actes|default:"0" }}% vs année précédente
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="stat-title">Actes validés</p>
+                    <p class="stat-value">{{ actes_valides }}</p>
+                </div>
+                <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                    <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+            </div>
+            <div class="stat-change">
+                Taux: {{ taux_validation }}%
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="stat-title">Utilisateurs actifs</p>
+                    <p class="stat-value">{{ users_actifs }}</p>
+                </div>
+                <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                    <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                    </svg>
+                </div>
+            </div>
+            <div class="stat-change">
+                {{ total_users }} au total
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="stat-title">Mairies</p>
+                    <p class="stat-value">{{ mairies_count }}</p>
+                </div>
+                <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
+                    <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                    </svg>
+                </div>
+            </div>
+            <div class="stat-change">
+                {{ provinces_couvertes }} provinces couvertes
+            </div>
+        </div>
+    </div>
+    
+    <!-- Graphiques -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Actes par mois -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Actes par mois - {{ year }}</h3>
+            <div class="h-64">
+                <canvas id="monthlyChart"></canvas>
+            </div>
+        </div>
+        
+        <!-- Répartition par province -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Répartition par province</h3>
+            <div class="h-64">
+                <canvas id="provinceChart"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Tableau récapitulatif -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div class="card-header">
+            <h3 class="text-lg font-medium text-gray-900">Détail par province</h3>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Province</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total actes</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Validés</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">En attente</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Annulés</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Taux validation</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for stat in stats_provinces %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            {{ stat.province }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ stat.total }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-green-600">{{ stat.valides }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-yellow-600">{{ stat.brouillons }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-red-600">{{ stat.annules }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <div class="flex items-center">
+                                <span class="mr-2">{{ stat.taux }}%</span>
+                                <div class="w-16 bg-gray-200 rounded-full h-2">
+                                    <div class="bg-gabon-flag-green h-2 rounded-full" style="width: {{ stat.taux }}%"></div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Graphique mensuel
+    const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
+    new Chart(monthlyCtx, {
+        type: 'line',
+        data: {
+            labels: {{ mois_labels|safe }},
+            datasets: [{
+                label: 'Actes de naissance',
+                data: {{ mois_data|safe }},
+                borderColor: '#3A7734',
+                backgroundColor: 'rgba(58, 119, 52, 0.1)',
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            }
+        }
+    });
+    
+    // Graphique provinces
+    const provinceCtx = document.getElementById('provinceChart').getContext('2d');
+    new Chart(provinceCtx, {
+        type: 'doughnut',
+        data: {
+            labels: {{ province_labels|safe }},
+            datasets: [{
+                data: {{ province_data|safe }},
+                backgroundColor: [
+                    '#3A7734', '#FCD116', '#3A75C4', '#FF6384', '#36A2EB',
+                    '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}

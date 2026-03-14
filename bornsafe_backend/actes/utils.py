@@ -4,9 +4,6 @@ from django.core.files import File
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import cm
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.platypus import Paragraph, Spacer
-from reportlab.lib.enums import TA_CENTER
 import logging
 
 logger = logging.getLogger('bornsafe')
@@ -56,7 +53,7 @@ def generate_pdf(instance):
         
         # Titre
         c.setFont("Helvetica-Bold", 16)
-        c.drawString(2*cm, height - 2*cm, "RÉPUBLIQUE DÉMOCRATIQUE DU CONGO")
+        c.drawString(2*cm, height - 2*cm, "RÉPUBLIQUE GABONAISE")
         c.setFont("Helvetica-Bold", 14)
         c.drawString(2*cm, height - 3*cm, "ACTE DE NAISSANCE")
         

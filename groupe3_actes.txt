@@ -1,0 +1,1210 @@
+from django.contrib import admin
+from .models import ActeNaissance
+
+admin.site.register(ActeNaissance)
+# actes/apps.py
+from django.apps import AppConfig
+
+class ActesConfig(AppConfig):
+    default_auto_field = 'django.db.models.BigAutoField'
+    name = 'actes'
+
+    def ready(self):
+        import actes.signals
+from django import forms
+from .models import ActeNaissance
+from provinces.models import Province
+
+class ActeNaissanceForm(forms.ModelForm):
+    """Formulaire pour les actes de naissance"""
+    
+    class Meta:
+        model = ActeNaissance
+        fields = [
+            'numero_acte', 'nom', 'prenom', 'date_naissance',
+            'lieu_naissance', 'province', 'fichier_pdf', 'status'
+        ]
+        widgets = {
+            'numero_acte': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Ex: ACT-2024-001'}),
+            'nom': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Nom de famille'}),
+            'prenom': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Prénom(s)'}),
+            'date_naissance': forms.DateInput(attrs={'class': 'form-input', 'type': 'date'}),
+            'lieu_naissance': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Ville/village de naissance'}),
+            'province': forms.Select(attrs={'class': 'form-select'}),
+            'fichier_pdf': forms.FileInput(attrs={'class': 'form-input'}),
+            'status': forms.Select(attrs={'class': 'form-select'}),
+        }
+        help_texts = {
+            'numero_acte': 'Format recommandé: ACT-ANNÉE-NUMÉRO (ex: ACT-2024-001)',
+        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Rendre certains champs optionnels selon le contexte
+        self.fields['fichier_pdf'].required = False
+        self.fields['status'].required = False
+        
+        # Ordonner les provinces
+        self.fields['province'].queryset = Province.objects.order_by('name')
+    
+    def clean_numero_acte(self):
+        """Validation personnalisée du numéro d'acte"""
+        numero = self.cleaned_data['numero_acte']
+        
+        # Vérifier l'unicité (sauf si c'est le même acte)
+        instance = getattr(self, 'instance', None)
+        if instance and instance.pk:
+            if ActeNaissance.objects.filter(numero_acte=numero).exclude(pk=instance.pk).exists():
+                raise forms.ValidationError("Ce numéro d'acte existe déjà")
+        else:
+            if ActeNaissance.objects.filter(numero_acte=numero).exists():
+                raise forms.ValidationError("Ce numéro d'acte existe déjà")
+        
+        return numero
+    
+    def clean_date_naissance(self):
+        """Validation de la date de naissance"""
+        date_naissance = self.cleaned_data['date_naissance']
+        from django.utils import timezone
+        from datetime import date
+        
+        if date_naissance > date.today():
+            raise forms.ValidationError("La date de naissance ne peut pas être dans le futur")
+        
+        return date_naissance
+
+
+class ActeRechercheForm(forms.Form):
+    """Formulaire de recherche d'actes"""
+    numero_acte = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Numéro d\'acte'})
+    )
+    nom = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Nom'})
+    )
+    prenom = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Prénom'})
+    )
+    province = forms.ModelChoiceField(
+        queryset=Province.objects.all(),
+        required=False,
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+    status = forms.ChoiceField(
+        choices=[('', 'Tous')] + ActeNaissance.STATUS_CHOICES,
+        required=False,
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+    date_debut = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={'class': 'form-input', 'type': 'date'})
+    )
+    date_fin = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={'class': 'form-input', 'type': 'date'})
+    )
+from django.db import models
+from django.utils import timezone
+from django.core.validators import RegexValidator, MinLengthValidator
+import uuid
+from provinces.models import Province
+from django.conf import settings
+import os
+
+def acte_pdf_path(instance, filename):
+    """Génère un chemin unique pour le fichier PDF"""
+    ext = filename.split('.')[-1]
+    filename = f"{instance.numero_acte}_{timezone.now().strftime('%Y%m%d_%H%M%S')}.{ext}"
+    return os.path.join('actes_pdfs', filename)
+
+def qr_code_path(instance, filename):
+    """Génère un chemin unique pour le QR code"""
+    ext = filename.split('.')[-1]
+    filename = f"qr_{instance.numero_acte}.{ext}"
+    return os.path.join('qr_codes', filename)
+
+class ActeNaissance(models.Model):
+    """Modèle pour les actes de naissance"""
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    numero_acte = models.CharField(
+        max_length=100, 
+        unique=True,
+        db_index=True,
+        validators=[MinLengthValidator(5)],
+        help_text="Numéro unique de l'acte de naissance"
+    )
+    
+    nom = models.CharField(max_length=100, db_index=True)
+    prenom = models.CharField(max_length=100)
+    date_naissance = models.DateField(db_index=True)
+    lieu_naissance = models.CharField(max_length=100)
+    
+    province = models.ForeignKey(
+        Province, 
+        on_delete=models.PROTECT,  # PROTECT au lieu de CASCADE
+        related_name='actes_naissance'
+    )
+    
+    # Fichiers
+    fichier_pdf = models.FileField(
+        upload_to=acte_pdf_path, 
+        null=True, 
+        blank=True
+    )
+    
+    qr_code = models.ImageField(
+        upload_to=qr_code_path, 
+        null=True, 
+        blank=True
+    )
+    
+    # Métadonnées
+    created_at = models.DateTimeField(default=timezone.now, db_index=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, 
+        related_name='created_actes', 
+        on_delete=models.SET_NULL, 
+        null=True
+    )
+    
+    modified_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, 
+        related_name='modified_actes', 
+        on_delete=models.SET_NULL, 
+        null=True
+    )
+    
+    # Statut
+    STATUS_CHOICES = [
+        ('brouillon', 'Brouillon'),
+        ('valide', 'Validé'),
+        ('annule', 'Annulé'),
+    ]
+    
+    status = models.CharField(
+        max_length=20, 
+        choices=STATUS_CHOICES, 
+        default='brouillon',
+        db_index=True
+    )
+    
+    class Meta:
+        indexes = [
+            models.Index(fields=['numero_acte', 'nom']),
+            models.Index(fields=['province', 'date_naissance']),
+        ]
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.numero_acte} - {self.nom} {self.prenom}"
+    
+    def save(self, *args, **kwargs):
+        """Surcharge pour mettre à jour updated_at"""
+        if not self._state.adding:
+            self.updated_at = timezone.now()
+        super().save(*args, **kwargs)
+    
+    def get_qr_data(self):
+        """Génère les données pour le QR code"""
+        return f"BornSafe|{self.numero_acte}|{self.nom}|{self.prenom}|{self.date_naissance}"
+from rest_framework import serializers
+from .models import ActeNaissance
+from provinces.serializers import ProvinceSerializer
+from provinces.models import Province
+from django.utils import timezone
+
+class ActeNaissanceListSerializer(serializers.ModelSerializer):
+    """Serializer pour la liste des actes (champs réduits)"""
+    
+    province_nom = serializers.CharField(source='province.name', read_only=True)
+    created_by_username = serializers.CharField(source='created_by.username', read_only=True)
+    
+    class Meta:
+        model = ActeNaissance
+        fields = [
+            'id', 'numero_acte', 'nom', 'prenom', 
+            'date_naissance', 'province_nom', 'status',
+            'created_at', 'created_by_username'
+        ]
+
+
+class ActeNaissanceDetailSerializer(serializers.ModelSerializer):
+    """Serializer pour les détails d'un acte"""
+    
+    province = ProvinceSerializer(read_only=True)
+    province_id = serializers.PrimaryKeyRelatedField(
+        queryset=Province.objects.all(), 
+        source='province', 
+        write_only=True
+    )
+    
+    created_by_username = serializers.CharField(source='created_by.username', read_only=True)
+    modified_by_username = serializers.CharField(source='modified_by.username', read_only=True)
+    
+    class Meta:
+        model = ActeNaissance
+        fields = [
+            'id', 'numero_acte', 'nom', 'prenom', 'date_naissance',
+            'lieu_naissance', 'province', 'province_id', 'fichier_pdf',
+            'qr_code', 'status', 'created_at', 'updated_at',
+            'created_by_username', 'modified_by_username'
+        ]
+        read_only_fields = ['fichier_pdf', 'qr_code', 'created_at', 'updated_at']
+
+
+class ActeNaissanceCreateUpdateSerializer(serializers.ModelSerializer):
+    """Serializer pour la création/mise à jour"""
+    
+    class Meta:
+        model = ActeNaissance
+        fields = [
+            'numero_acte', 'nom', 'prenom', 'date_naissance',
+            'lieu_naissance', 'province', 'status'
+        ]
+    
+    def validate_numero_acte(self, value):
+        """Validation du numéro d'acte"""
+        if ActeNaissance.objects.filter(numero_acte=value).exists():
+            raise serializers.ValidationError("Ce numéro d'acte existe déjà")
+        return value
+    
+    def validate_date_naissance(self, value):
+        """Validation de la date de naissance"""
+        if value > timezone.now().date():
+            raise serializers.ValidationError("La date de naissance ne peut pas être dans le futur")
+        return value
+
+
+class ActeNaissanceVerifySerializer(serializers.Serializer):
+    """Serializer pour la vérification d'un acte"""
+    
+    numero_acte = serializers.CharField(required=True)
+    nom = serializers.CharField(required=True)
+    prenom = serializers.CharField(required=True)
+    date_naissance = serializers.DateField(required=True)
+    lieu_naissance = serializers.CharField(required=True)
+    province_id = serializers.IntegerField(required=True)
+    
+    def validate(self, data):
+        """Vérification de l'existence de l'acte"""
+        acte = ActeNaissance.objects.filter(
+            numero_acte=data['numero_acte'],
+            nom__iexact=data['nom'],
+            prenom__iexact=data['prenom'],
+            date_naissance=data['date_naissance'],
+            lieu_naissance__iexact=data['lieu_naissance'],
+            province_id=data['province_id']
+        ).first()
+        
+        if not acte:
+            raise serializers.ValidationError("Acte non trouvé")
+        
+        if acte.status != 'valide':
+            raise serializers.ValidationError("Cet acte n'est pas validé")
+        
+        data['acte'] = acte
+        return data
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from .models import ActeNaissance
+import qrcode
+from io import BytesIO
+from django.core.files import File
+
+@receiver(post_save, sender=ActeNaissance)
+def generate_qr_code(sender, instance, created, **kwargs):
+    if created and not instance.qr_code:
+        qr = qrcode.QRCode(version=1, box_size=10, border=5)
+        qr.add_data(f"BornSafe-{instance.numero_acte}")
+        qr.make(fit=True)
+        img = qr.make_image(fill='black', back_color='white')
+        buffer = BytesIO()
+        img.save(buffer)
+        instance.qr_code.save(f"{instance.numero_acte}.png", File(buffer), save=True)
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import ActeNaissanceViewSet
+
+router = DefaultRouter()
+router.register(r'', ActeNaissanceViewSet, basename='acte')
+
+urlpatterns = [
+    path('', include(router.urls)),
+]
+from django.urls import path
+from . import views_templates as views
+
+urlpatterns = [
+    # Pages principales
+    path('', views.acte_list, name='acte-list'),
+    path('<uuid:pk>/', views.acte_detail, name='acte-detail'),
+    path('nouveau/', views.acte_create, name='acte-create'),
+    path('<uuid:pk>/modifier/', views.acte_update, name='acte-edit'),
+    path('<uuid:pk>/valider/', views.acte_validate, name='acte-validate'),
+    
+    # Actions
+    path('<uuid:pk>/pdf/', views.acte_download_pdf, name='acte-download-pdf'),
+]
+import qrcode
+from io import BytesIO
+from django.core.files import File
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.units import cm
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.platypus import Paragraph, Spacer
+from reportlab.lib.enums import TA_CENTER
+import logging
+
+logger = logging.getLogger('bornsafe')
+
+def generate_qr_code(instance):
+    """Génère un QR code pour un acte"""
+    try:
+        qr = qrcode.QRCode(
+            version=1,
+            box_size=10,
+            border=5,
+            error_correction=qrcode.constants.ERROR_CORRECT_H
+        )
+        
+        # Données structurées
+        qr_data = instance.get_qr_data()
+        qr.add_data(qr_data)
+        qr.make(fit=True)
+        
+        # Créer l'image
+        img = qr.make_image(fill_color="black", back_color="white")
+        
+        # Sauvegarder
+        buffer = BytesIO()
+        img.save(buffer, format='PNG')
+        
+        instance.qr_code.save(
+            f"qr_{instance.numero_acte}.png", 
+            File(buffer), 
+            save=False
+        )
+        
+        logger.debug(f"QR code généré pour {instance.numero_acte}")
+        
+    except Exception as e:
+        logger.error(f"Erreur génération QR code {instance.numero_acte}: {str(e)}")
+        raise
+
+def generate_pdf(instance):
+    """Génère un PDF pour un acte"""
+    try:
+        buffer = BytesIO()
+        
+        # Créer le document PDF
+        c = canvas.Canvas(buffer, pagesize=A4)
+        width, height = A4
+        
+        # Titre
+        c.setFont("Helvetica-Bold", 16)
+        c.drawString(2*cm, height - 2*cm, "RÉPUBLIQUE DÉMOCRATIQUE DU CONGO")
+        c.setFont("Helvetica-Bold", 14)
+        c.drawString(2*cm, height - 3*cm, "ACTE DE NAISSANCE")
+        
+        # Ligne de séparation
+        c.line(2*cm, height - 3.5*cm, width - 2*cm, height - 3.5*cm)
+        
+        # Informations
+        y = height - 5*cm
+        line_height = 0.8*cm
+        
+        c.setFont("Helvetica", 12)
+        
+        # Numéro d'acte
+        c.drawString(2*cm, y, f"Numéro d'acte : {instance.numero_acte}")
+        y -= line_height
+        
+        # Nom et prénom
+        c.drawString(2*cm, y, f"Nom : {instance.nom}")
+        y -= line_height
+        c.drawString(2*cm, y, f"Prénom : {instance.prenom}")
+        y -= line_height
+        
+        # Date et lieu de naissance
+        date_str = instance.date_naissance.strftime("%d/%m/%Y")
+        c.drawString(2*cm, y, f"Date de naissance : {date_str}")
+        y -= line_height
+        c.drawString(2*cm, y, f"Lieu de naissance : {instance.lieu_naissance}")
+        y -= line_height
+        
+        # Province
+        c.drawString(2*cm, y, f"Province : {instance.province.name}")
+        y -= line_height
+        
+        # Date d'établissement
+        created_str = instance.created_at.strftime("%d/%m/%Y")
+        c.drawString(2*cm, y, f"Date d'établissement : {created_str}")
+        y -= line_height
+        
+        # QR Code note
+        c.setFont("Helvetica-Oblique", 10)
+        c.drawString(2*cm, 2*cm, "Ce document est authentifié par QR code")
+        
+        # Finaliser
+        c.showPage()
+        c.save()
+        
+        # Sauvegarder
+        buffer.seek(0)
+        instance.fichier_pdf.save(
+            f"acte_{instance.numero_acte}.pdf", 
+            File(buffer), 
+            save=False
+        )
+        
+        logger.debug(f"PDF généré pour {instance.numero_acte}")
+        
+    except Exception as e:
+        logger.error(f"Erreur génération PDF {instance.numero_acte}: {str(e)}")
+        raise
+from rest_framework import viewsets, filters, status
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from django_filters.rest_framework import DjangoFilterBackend
+from django.core.cache import cache
+from django.utils import timezone
+from django.db import transaction
+from .models import ActeNaissance
+from .serializers import (
+    ActeNaissanceListSerializer, 
+    ActeNaissanceDetailSerializer,
+    ActeNaissanceCreateUpdateSerializer,
+    ActeNaissanceVerifySerializer
+)
+from accounts.permissions import IsMairieOrSuperAdmin
+from .utils import generate_qr_code, generate_pdf
+import logging
+
+logger = logging.getLogger('bornsafe')
+
+class ActeNaissanceViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet pour gérer les actes de naissance
+    """
+    queryset = ActeNaissance.objects.select_related(
+        'province', 'created_by', 'modified_by'
+    ).all()
+    
+    filter_backends = [
+        DjangoFilterBackend, 
+        filters.SearchFilter, 
+        filters.OrderingFilter
+    ]
+    
+    filterset_fields = ['province', 'status', 'date_naissance']
+    search_fields = ['numero_acte', 'nom', 'prenom', 'lieu_naissance']
+    ordering_fields = ['created_at', 'date_naissance', 'nom']
+    
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return ActeNaissanceListSerializer
+        elif self.action in ['create', 'update', 'partial_update']:
+            return ActeNaissanceCreateUpdateSerializer
+        elif self.action == 'verify':
+            return ActeNaissanceVerifySerializer
+        return ActeNaissanceDetailSerializer
+
+    def get_permissions(self):
+        if self.action in ['create', 'update', 'partial_update', 'destroy', 'validate']:
+            permission_classes = [IsMairieOrSuperAdmin]
+        else:
+            permission_classes = [IsAuthenticated]
+        return [permission() for permission in permission_classes]
+
+    def get_queryset(self):
+        """Optimisation des requêtes"""
+        queryset = super().get_queryset()
+        
+        # Filtrage par rôle
+        user = self.request.user
+        if user.role == 'mairie':
+            # Les mairies voient seulement les actes qu'elles ont créés
+            queryset = queryset.filter(created_by=user)
+        elif user.role == 'user':
+            # Les utilisateurs voient seulement les actes validés
+            queryset = queryset.filter(status='valide')
+        
+        return queryset
+
+    @transaction.atomic
+    def perform_create(self, serializer):
+        """Création avec utilisateur"""
+        instance = serializer.save(
+            created_by=self.request.user,
+            modified_by=self.request.user
+        )
+        
+        # Générer le PDF et QR code en arrière-plan
+        self._generate_documents(instance)
+        
+        logger.info(f"Acte créé: {instance.numero_acte} par {self.request.user.username}")
+
+    @transaction.atomic
+    def perform_update(self, serializer):
+        """Mise à jour avec utilisateur"""
+        instance = serializer.save(modified_by=self.request.user)
+        
+        # Invalider le cache si nécessaire
+        cache.delete(f'acte_{instance.id}')
+        
+        logger.info(f"Acte mis à jour: {instance.numero_acte} par {self.request.user.username}")
+
+    def _generate_documents(self, instance):
+        """Génère les documents (PDF et QR code)"""
+        try:
+            # Générer le QR code
+            generate_qr_code(instance)
+            
+            # Générer le PDF
+            generate_pdf(instance)
+            
+            instance.save(update_fields=['qr_code', 'fichier_pdf'])
+        except Exception as e:
+            logger.error(f"Erreur génération documents pour {instance.numero_acte}: {str(e)}")
+
+    @action(detail=False, methods=['post'])
+    def verify(self, request):
+        """Vérifier un acte de naissance"""
+        serializer = ActeNaissanceVerifySerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        acte = serializer.validated_data['acte']
+        
+        # Mettre en cache pour les prochaines vérifications
+        cache.set(f'verified_{acte.numero_acte}', True, timeout=3600)
+        
+        logger.info(f"Acte vérifié: {acte.numero_acte} par {request.user.username}")
+        
+        return Response({
+            'status': 'conforme',
+            'message': 'Acte de naissance authentique',
+            'acte': ActeNaissanceDetailSerializer(acte).data
+        })
+
+    @action(detail=True, methods=['post'])
+    def validate(self, request, pk=None):
+        """Valider un acte (le passer du statut brouillon à validé)"""
+        acte = self.get_object()
+        
+        if acte.status != 'brouillon':
+            return Response(
+                {'error': "Cet acte ne peut pas être validé"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        acte.status = 'valide'
+        acte.modified_by = request.user
+        acte.save()
+        
+        logger.info(f"Acte validé: {acte.numero_acte} par {request.user.username}")
+        
+        return Response({
+            'message': 'Acte validé avec succès',
+            'acte': ActeNaissanceDetailSerializer(acte).data
+        })
+
+    @action(detail=True, methods=['get'])
+    def download_pdf(self, request, pk=None):
+        """Télécharger le PDF d'un acte"""
+        acte = self.get_object()
+        
+        if not acte.fichier_pdf:
+            return Response(
+                {'error': "PDF non disponible"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        logger.info(f"PDF téléchargé: {acte.numero_acte} par {request.user.username}")
+        
+        from django.http import FileResponse
+        return FileResponse(
+            acte.fichier_pdf, 
+            as_attachment=True,
+            filename=f"acte_{acte.numero_acte}.pdf"
+        )
+
+    @action(detail=True, methods=['get'])
+    def qr_code(self, request, pk=None):
+        """Récupérer le QR code d'un acte"""
+        acte = self.get_object()
+        
+        if not acte.qr_code:
+            return Response(
+                {'error': "QR code non disponible"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        from django.http import FileResponse
+        return FileResponse(acte.qr_code, content_type='image/png')
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.core.paginator import Paginator
+from django.db.models import Q
+from .models import ActeNaissance
+from provinces.models import Province
+from .forms import ActeNaissanceForm
+from django.utils import timezone
+from datetime import datetime, timedelta
+
+@login_required
+def acte_list(request):
+    """Liste des actes de naissance"""
+    queryset = ActeNaissance.objects.select_related('province', 'created_by').all()
+    
+    # Filtrage par rôle
+    if request.user.role == 'mairie':
+        queryset = queryset.filter(created_by=request.user)
+    elif request.user.role == 'user':
+        queryset = queryset.filter(status='valide')
+    
+    # Recherche
+    search_query = request.GET.get('search', '')
+    if search_query:
+        queryset = queryset.filter(
+            Q(numero_acte__icontains=search_query) |
+            Q(nom__icontains=search_query) |
+            Q(prenom__icontains=search_query)
+        )
+    
+    # Filtre province
+    province_id = request.GET.get('province')
+    if province_id:
+        queryset = queryset.filter(province_id=province_id)
+    
+    # Filtre statut
+    status = request.GET.get('status')
+    if status:
+        queryset = queryset.filter(status=status)
+    
+    # Pagination
+    paginator = Paginator(queryset.order_by('-created_at'), 20)
+    page_number = request.GET.get('page')
+    actes = paginator.get_page(page_number)
+    
+    context = {
+        'actes': actes,
+        'provinces': Province.objects.all(),
+        'is_paginated': actes.has_other_pages(),
+        'page_obj': actes,
+        'paginator': paginator,
+    }
+    return render(request, 'actes/liste.html', context)
+
+@login_required
+def acte_detail(request, pk):
+    """Détail d'un acte"""
+    acte = get_object_or_404(ActeNaissance, pk=pk)
+    
+    # Vérification des permissions
+    if request.user.role == 'user' and acte.status != 'valide':
+        messages.error(request, "Vous n'avez pas accès à cet acte")
+        return redirect('acte-list')
+    
+    if request.user.role == 'mairie' and acte.created_by != request.user:
+        messages.error(request, "Vous n'êtes pas autorisé à voir cet acte")
+        return redirect('acte-list')
+    
+    context = {
+        'acte': acte
+    }
+    return render(request, 'actes/detail.html', context)
+
+@login_required
+def acte_create(request):
+    """Création d'un acte"""
+    if request.user.role not in ['mairie', 'super_admin']:
+        messages.error(request, "Vous n'êtes pas autorisé à créer des actes")
+        return redirect('acte-list')
+    
+    if request.method == 'POST':
+        form = ActeNaissanceForm(request.POST, request.FILES)
+        if form.is_valid():
+            acte = form.save(commit=False)
+            acte.created_by = request.user
+            acte.modified_by = request.user
+            acte.save()
+            messages.success(request, f"Acte {acte.numero_acte} créé avec succès")
+            return redirect('acte-detail', pk=acte.id)
+    else:
+        form = ActeNaissanceForm()
+    
+    context = {
+        'form': form,
+        'acte': None
+    }
+    return render(request, 'actes/formulaire.html', context)
+
+@login_required
+def acte_update(request, pk):
+    """Modification d'un acte"""
+    acte = get_object_or_404(ActeNaissance, pk=pk)
+    
+    if request.user.role not in ['mairie', 'super_admin']:
+        messages.error(request, "Vous n'êtes pas autorisé à modifier des actes")
+        return redirect('acte-list')
+    
+    if request.user.role == 'mairie' and acte.created_by != request.user:
+        messages.error(request, "Vous ne pouvez modifier que vos propres actes")
+        return redirect('acte-list')
+    
+    if request.method == 'POST':
+        form = ActeNaissanceForm(request.POST, request.FILES, instance=acte)
+        if form.is_valid():
+            acte = form.save(commit=False)
+            acte.modified_by = request.user
+            acte.save()
+            messages.success(request, f"Acte {acte.numero_acte} modifié avec succès")
+            return redirect('acte-detail', pk=acte.id)
+    else:
+        form = ActeNaissanceForm(instance=acte)
+    
+    context = {
+        'form': form,
+        'acte': acte
+    }
+    return render(request, 'actes/formulaire.html', context)
+
+@login_required
+def acte_validate(request, pk):
+    """Validation d'un acte"""
+    if request.method == 'POST':
+        acte = get_object_or_404(ActeNaissance, pk=pk)
+        
+        if request.user.role not in ['mairie', 'super_admin']:
+            messages.error(request, "Vous n'êtes pas autorisé à valider des actes")
+            return redirect('acte-list')
+        
+        if acte.status != 'brouillon':
+            messages.error(request, "Cet acte ne peut pas être validé")
+            return redirect('acte-detail', pk=acte.id)
+        
+        acte.status = 'valide'
+        acte.modified_by = request.user
+        acte.save()
+        
+        messages.success(request, f"Acte {acte.numero_acte} validé avec succès")
+    
+    return redirect('acte-detail', pk=pk)
+
+@login_required
+def dashboard(request):
+    """Tableau de bord"""
+    from django.db.models import Count, Q
+    from django.contrib.auth import get_user_model
+    
+    User = get_user_model()
+    
+    # Statistiques générales
+    total_actes = ActeNaissance.objects.count()
+    actes_valides = ActeNaissance.objects.filter(status='valide').count()
+    actes_attente = ActeNaissance.objects.filter(status='brouillon').count()
+    total_users = User.objects.count()
+    users_actifs = User.objects.filter(is_active=True).count()
+    
+    # Actes récents
+    actes_recents = ActeNaissance.objects.select_related('province').order_by('-created_at')[:5]
+    
+    # Statistiques par province
+    stats_provinces = Province.objects.annotate(
+        total=Count('actes_naissance'),
+        valides=Count('actes_naissance', filter=Q(actes_naissance__status='valide')),
+        brouillons=Count('actes_naissance', filter=Q(actes_naissance__status='brouillon')),
+        annules=Count('actes_naissance', filter=Q(actes_naissance__status='annule'))
+    )
+    
+    # Calcul des taux
+    for stat in stats_provinces:
+        if stat.total > 0:
+            stat.taux = int((stat.valides / stat.total) * 100)
+        else:
+            stat.taux = 0
+    
+    context = {
+        'total_actes': total_actes,
+        'actes_valides': actes_valides,
+        'actes_attente': actes_attente,
+        'total_users': total_users,
+        'users_actifs': users_actifs,
+        'actes_recents': actes_recents,
+        'stats_provinces': stats_provinces,
+        'taux_validation': int((actes_valides / total_actes * 100)) if total_actes > 0 else 0,
+    }
+    return render(request, 'dashboard.html', context)
+from django.test import TestCase
+from rest_framework.test import APITestCase, APIClient
+from rest_framework import status
+from django.urls import reverse
+from django.utils import timezone
+from datetime import date, timedelta
+from .models import ActeNaissance
+from provinces.models import Province
+from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
+import tempfile
+from PIL import Image
+import io
+
+User = get_user_model()
+
+class ActeNaissanceModelTests(TestCase):
+    """Tests pour le modèle ActeNaissance"""
+    
+    def setUp(self):
+        self.province = Province.objects.create(name='Kinshasa')
+        self.user = User.objects.create_user(
+            username='testuser',
+            password='testpass123'
+        )
+        
+        self.acte = ActeNaissance.objects.create(
+            numero_acte='ACTE001',
+            nom='Dupont',
+            prenom='Jean',
+            date_naissance=date(1990, 1, 1),
+            lieu_naissance='Kinshasa',
+            province=self.province,
+            created_by=self.user,
+            modified_by=self.user
+        )
+    
+    def test_acte_creation(self):
+        """Test création acte"""
+        self.assertEqual(self.acte.numero_acte, 'ACTE001')
+        self.assertEqual(self.acte.nom, 'Dupont')
+        self.assertEqual(self.acte.prenom, 'Jean')
+        self.assertEqual(self.acte.status, 'brouillon')
+    
+    def test_acte_str_method(self):
+        """Test méthode __str__"""
+        expected = "ACTE001 - Dupont Jean"
+        self.assertEqual(str(self.acte), expected)
+    
+    def test_acte_unique_numero(self):
+        """Test unicité numéro d'acte"""
+        with self.assertRaises(Exception):
+            ActeNaissance.objects.create(
+                numero_acte='ACTE001',  # Déjà existant
+                nom='Martin',
+                prenom='Pierre',
+                date_naissance=date(1990, 1, 1),
+                lieu_naissance='Kinshasa',
+                province=self.province,
+                created_by=self.user,
+                modified_by=self.user
+            )
+    
+    def test_qr_data_generation(self):
+        """Test génération données QR"""
+        qr_data = self.acte.get_qr_data()
+        self.assertIn('ACTE001', qr_data)
+        self.assertIn('Dupont', qr_data)
+        self.assertIn('Jean', qr_data)
+
+
+class ActeNaissanceAPITests(APITestCase):
+    """Tests API pour Actes de naissance"""
+    
+    def setUp(self):
+        self.client = APIClient()
+        
+        # Créer province
+        self.province = Province.objects.create(name='Kinshasa')
+        
+        # Créer utilisateurs
+        self.user = User.objects.create_user(
+            username='normaluser',
+            password='UserPass123!',
+            role='user',
+            email='user@test.com'
+        )
+        
+        self.mairie = User.objects.create_user(
+            username='mairie',
+            password='MairiePass123!',
+            role='mairie',
+            is_staff=True,
+            email='mairie@test.com'
+        )
+        
+        self.super_admin = User.objects.create_user(
+            username='superadmin',
+            password='SuperPass123!',
+            role='super_admin',
+            is_staff=True,
+            is_superuser=True,
+            email='super@test.com'
+        )
+        
+        # Créer quelques actes
+        self.acte1 = ActeNaissance.objects.create(
+            numero_acte='ACTE2025001',
+            nom='Dupont',
+            prenom='Jean',
+            date_naissance=date(1990, 1, 1),
+            lieu_naissance='Kinshasa',
+            province=self.province,
+            created_by=self.mairie,
+            modified_by=self.mairie,
+            status='valide'
+        )
+        
+        self.acte2 = ActeNaissance.objects.create(
+            numero_acte='ACTE2025002',
+            nom='Martin',
+            prenom='Marie',
+            date_naissance=date(1995, 5, 5),
+            lieu_naissance='Kinshasa',
+            province=self.province,
+            created_by=self.mairie,
+            modified_by=self.mairie,
+            status='brouillon'
+        )
+        
+        self.actes_url = reverse('acte-list')
+    
+    def login_as(self, user, password):
+        """Helper pour login"""
+        login_data = {'nom_utilisateur': user.username, 'mot_de_passe': password}
+        response = self.client.post(reverse('login'), login_data, format='json')
+        token = response.data['access']
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
+        return token
+    
+    def test_1_list_actes_as_user(self):
+        """Test 1: User voit seulement actes validés"""
+        self.login_as(self.user, 'UserPass123!')
+        
+        response = self.client.get(self.actes_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        # Ne devrait voir que l'acte validé
+        results = response.data['results']
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0]['numero_acte'], 'ACTE2025001')
+    
+    def test_2_list_actes_as_mairie(self):
+        """Test 2: Mairie voit tous ses actes"""
+        self.login_as(self.mairie, 'MairiePass123!')
+        
+        response = self.client.get(self.actes_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        # Devrait voir ses 2 actes
+        self.assertEqual(len(response.data['results']), 2)
+    
+    def test_3_create_acte_as_user(self):
+        """Test 3: User ne peut pas créer d'acte"""
+        self.login_as(self.user, 'UserPass123!')
+        
+        data = {
+            'numero_acte': 'ACTE2025003',
+            'nom': 'Test',
+            'prenom': 'User',
+            'date_naissance': '2000-01-01',
+            'lieu_naissance': 'Kinshasa',
+            'province_id': self.province.id
+        }
+        
+        response = self.client.post(self.actes_url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+    
+    def test_4_create_acte_as_mairie(self):
+        """Test 4: Mairie peut créer un acte"""
+        self.login_as(self.mairie, 'MairiePass123!')
+        
+        data = {
+            'numero_acte': 'ACTE2025003',
+            'nom': 'Test',
+            'prenom': 'Creation',
+            'date_naissance': '2000-01-01',
+            'lieu_naissance': 'Kinshasa',
+            'province_id': self.province.id
+        }
+        
+        response = self.client.post(self.actes_url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        
+        # Vérifier création
+        self.assertEqual(ActeNaissance.objects.count(), 3)
+        acte = ActeNaissance.objects.get(numero_acte='ACTE2025003')
+        self.assertEqual(acte.created_by, self.mairie)
+        self.assertEqual(acte.status, 'brouillon')
+    
+    def test_5_create_acte_duplicate_numero(self):
+        """Test 5: Impossible de créer avec numéro existant"""
+        self.login_as(self.mairie, 'MairiePass123!')
+        
+        data = {
+            'numero_acte': 'ACTE2025001',  # Déjà existant
+            'nom': 'Test',
+            'prenom': 'Duplicate',
+            'date_naissance': '2000-01-01',
+            'lieu_naissance': 'Kinshasa',
+            'province_id': self.province.id
+        }
+        
+        response = self.client.post(self.actes_url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('numero_acte', response.data)
+    
+    def test_6_create_acte_future_date(self):
+        """Test 6: Date de naissance future impossible"""
+        self.login_as(self.mairie, 'MairiePass123!')
+        
+        future_date = (timezone.now().date() + timedelta(days=365)).isoformat()
+        
+        data = {
+            'numero_acte': 'ACTE2025004',
+            'nom': 'Test',
+            'prenom': 'Future',
+            'date_naissance': future_date,
+            'lieu_naissance': 'Kinshasa',
+            'province_id': self.province.id
+        }
+        
+        response = self.client.post(self.actes_url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+    
+    def test_7_update_acte_as_creator(self):
+        """Test 7: Mairie peut modifier son acte"""
+        self.login_as(self.mairie, 'MairiePass123!')
+        
+        url = reverse('acte-detail', args=[self.acte2.id])
+        data = {'nom': 'Martin-Modifié'}
+        
+        response = self.client.patch(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        self.acte2.refresh_from_db()
+        self.assertEqual(self.acte2.nom, 'Martin-Modifié')
+    
+    def test_8_validate_acte(self):
+        """Test 8: Valider un acte"""
+        self.login_as(self.mairie, 'MairiePass123!')
+        
+        url = reverse('acte-validate', args=[self.acte2.id])
+        response = self.client.post(url)
+        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.acte2.refresh_from_db()
+        self.assertEqual(self.acte2.status, 'valide')
+    
+    def test_9_verify_acte(self):
+        """Test 9: Vérifier un acte"""
+        self.login_as(self.user, 'UserPass123!')
+        
+        url = reverse('acte-verify')
+        data = {
+            'numero_acte': 'ACTE2025001',
+            'nom': 'Dupont',
+            'prenom': 'Jean',
+            'date_naissance': '1990-01-01',
+            'lieu_naissance': 'Kinshasa',
+            'province_id': self.province.id
+        }
+        
+        response = self.client.post(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['status'], 'conforme')
+    
+    def test_10_verify_invalid_acte(self):
+        """Test 10: Vérifier acte invalide"""
+        self.login_as(self.user, 'UserPass123!')
+        
+        url = reverse('acte-verify')
+        data = {
+            'numero_acte': 'INVALID',
+            'nom': 'Inconnu',
+            'prenom': 'Personne',
+            'date_naissance': '1990-01-01',
+            'lieu_naissance': 'Kinshasa',
+            'province_id': self.province.id
+        }
+        
+        response = self.client.post(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+    
+    def test_11_search_actes(self):
+        """Test 11: Recherche d'actes"""
+        self.login_as(self.mairie, 'MairiePass123!')
+        
+        # Recherche par nom
+        response = self.client.get(f"{self.actes_url}?search=Dupont")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data['results']), 1)
+        
+        # Recherche par numéro
+        response = self.client.get(f"{self.actes_url}?search=ACTE2025002")
+        self.assertEqual(len(response.data['results']), 1)
+    
+    def test_12_filter_by_status(self):
+        """Test 12: Filtre par statut"""
+        self.login_as(self.mairie, 'MairiePass123!')
+        
+        response = self.client.get(f"{self.actes_url}?status=valide")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data['results']), 1)
+        self.assertEqual(response.data['results'][0]['status'], 'valide')
+    
+    def test_13_download_pdf(self):
+        """Test 13: Téléchargement PDF"""
+        self.login_as(self.user, 'UserPass123!')
+        
+        url = reverse('acte-download-pdf', args=[self.acte1.id])
+        response = self.client.get(url)
+        
+        # Devrait générer un PDF à la volée
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response['Content-Type'], 'application/pdf')
+    
+    def test_14_qr_code_generation(self):
+        """Test 14: Génération QR code"""
+        self.login_as(self.mairie, 'MairiePass123!')
+        
+        # Vérifier que le QR code est généré après validation
+        url = reverse('acte-validate', args=[self.acte2.id])
+        response = self.client.post(url)
+        
+        self.acte2.refresh_from_db()
+        self.assertIsNotNone(self.acte2.qr_code)
+    
+    def test_15_pagination(self):
+        """Test 15: Pagination fonctionne"""
+        self.login_as(self.mairie, 'MairiePass123!')
+        
+        # Créer plusieurs actes
+        for i in range(15):
+            ActeNaissance.objects.create(
+                numero_acte=f'ACTE2025{i+10:03d}',
+                nom=f'Test{i}',
+                prenom='Pagination',
+                date_naissance=date(2000, 1, 1),
+                lieu_naissance='Kinshasa',
+                province=self.province,
+                created_by=self.mairie,
+                modified_by=self.mairie
+            )
+        
+        response = self.client.get(self.actes_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        # Vérifier pagination (page_size=20 par défaut)
+        self.assertIn('count', response.data)
+        self.assertIn('next', response.data)
+        self.assertIn('previous', response.data)
+        self.assertIn('results', response.data)

@@ -1,0 +1,102 @@
+{% extends "base/base.html" %}
+
+{% block title %}Connexion - BornSafe Mairie{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full space-y-8">
+        <div>
+            <div class="flex justify-center">
+                <img class="h-24 w-auto" src="/static/images/logo-gabon.png" alt="BornSafe">
+            </div>
+            <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
+                Connexion à votre compte
+            </h2>
+            <p class="mt-2 text-center text-sm text-gray-600">
+                Ou 
+                <a href="#" class="font-medium text-gabon-flag-green hover:text-gabon-flag-green/80">
+                    contactez votre administrateur
+                </a>
+            </p>
+        </div>
+        
+        <!-- Drapeau du Gabon décoratif -->
+        <div class="flex h-1">
+            <div class="flex-1 bg-gabon-flag-green"></div>
+            <div class="flex-1 bg-gabon-flag-yellow"></div>
+            <div class="flex-1 bg-gabon-flag-blue"></div>
+        </div>
+        
+        <form class="mt-8 space-y-6" method="post">
+            {% csrf_token %}
+            
+            {% if form.errors %}
+            <div class="alert alert-error">
+                <p class="font-medium">Erreur de connexion</p>
+                <p class="text-sm mt-1">Nom d'utilisateur ou mot de passe incorrect.</p>
+            </div>
+            {% endif %}
+            
+            <div class="space-y-4">
+                <div>
+                    <label for="username" class="form-label">Nom d'utilisateur</label>
+                    <input id="username" name="username" type="text" required 
+                           class="form-input" placeholder="Entrez votre nom d'utilisateur">
+                </div>
+                
+                <div>
+                    <label for="password" class="form-label">Mot de passe</label>
+                    <input id="password" name="password" type="password" required 
+                           class="form-input" placeholder="Entrez votre mot de passe">
+                </div>
+            </div>
+            
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <input id="remember" name="remember" type="checkbox" class="form-checkbox">
+                    <label for="remember" class="ml-2 block text-sm text-gray-900">
+                        Se souvenir de moi
+                    </label>
+                </div>
+                
+                <div class="text-sm">
+                    <a href="#" class="font-medium text-gabon-flag-green hover:text-gabon-flag-green/80">
+                        Mot de passe oublié ?
+                    </a>
+                </div>
+            </div>
+            
+            <div>
+                <button type="submit" class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-gabon-flag-green hover:bg-gabon-flag-green/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gabon-flag-green">
+                    <span class="absolute left-0 inset-y-0 flex items-center pl-3">
+                        <svg class="h-5 w-5 text-gabon-flag-green/50 group-hover:text-gabon-flag-green/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                        </svg>
+                    </span>
+                    Se connecter
+                </button>
+            </div>
+            
+            <!-- Informations de démo -->
+            <div class="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <p class="text-sm text-blue-800 font-medium mb-2">Comptes de démonstration :</p>
+                <ul class="text-xs text-blue-700 space-y-1">
+                    <li><span class="font-medium">Super Admin :</span> superadmin / admin123</li>
+                    <li><span class="font-medium">Mairie :</span> mairie / mairie123</li>
+                    <li><span class="font-medium">Agent :</span> agent / agent123</li>
+                </ul>
+            </div>
+        </form>
+        
+        <!-- Informations sur les provinces du Gabon -->
+        <div class="mt-4 text-center text-xs text-gray-500">
+            <p>Système connecté - Provinces du Gabon</p>
+            <div class="flex flex-wrap justify-center gap-2 mt-2">
+                {% for region in gabon_regions %}
+                <span class="px-2 py-1 bg-gray-100 rounded-full">{{ region }}</span>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

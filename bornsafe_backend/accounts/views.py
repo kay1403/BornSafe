@@ -5,8 +5,6 @@ from rest_framework.decorators import action
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from rest_framework_simplejwt.tokens import RefreshToken
-from django_ratelimit.decorators import ratelimit
-from django.utils.decorators import method_decorator
 from .serializers import (
     UtilisateurSerializer, EnregistrementSerializer, 
     AdminCreationSerializer, LoginSerializer
@@ -41,7 +39,6 @@ class UserViewSet(viewsets.ModelViewSet):
         return [IsAuthenticated()]
 
     @action(detail=False, methods=['post'])
-    @method_decorator(ratelimit(key='ip', rate='5/m', method='POST'))
     def register(self, request):
         """Enregistrement d'un nouvel utilisateur"""
         serializer = EnregistrementSerializer(data=request.data)
@@ -58,7 +55,6 @@ class UserViewSet(viewsets.ModelViewSet):
         }, status=status.HTTP_201_CREATED)
 
     @action(detail=False, methods=['post'])
-    @method_decorator(ratelimit(key='ip', rate='3/m', method='POST'))
     def login(self, request):
         """Connexion utilisateur"""
         serializer = LoginSerializer(data=request.data)
